@@ -7,6 +7,8 @@ class_name TileView
 extends EntityView
 
 const CELL_SIZE := 1.0
+const RADIUS := CELL_SIZE * 0.38
+const HEIGHT := CELL_SIZE * 0.76
 ## Constant speed, not constant duration: a short settle (1 cell) and a long
 ## spawn-fall (a whole board height) must move at the same pace, or they
 ## visibly play back at different speeds and the cascade looks disjointed.
@@ -21,8 +23,8 @@ func build_node(entity: BoardEntity) -> Node3D:
 	var tile: Tile = entity
 	var node := MeshInstance3D.new()
 	var sphere := SphereMesh.new()
-	sphere.radius = CELL_SIZE * 0.38
-	sphere.height = CELL_SIZE * 0.76
+	sphere.radius = RADIUS
+	sphere.height = HEIGHT
 	node.mesh = sphere
 	var material := StandardMaterial3D.new()
 	material.albedo_color = tile_colors[tile.color % tile_colors.size()]

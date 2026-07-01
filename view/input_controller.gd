@@ -8,6 +8,8 @@ class_name InputController
 extends Node3D
 
 const DRAG_COMMIT_THRESHOLD := 0.35
+const DRAG_LIFT_BONUS := 0.55
+const DRAG_FOLLOW_TIME := 0.08
 
 var camera: Camera3D
 var board_view: BoardView3D
@@ -21,6 +23,7 @@ var _drag_direction: int = -1
 var _drag_fraction: float = 0.0
 var _companion_cell: GridCell
 var _companion_tile: Tile
+var _spring_tweens: Dictionary = {}  # Tile -> Tween
 
 func setup(p_camera: Camera3D, p_board_view: BoardView3D, p_board: BoardGraph, p_swap_controller: SwapController) -> void:
 	camera = p_camera
@@ -51,6 +54,10 @@ func _begin_drag(screen_pos: Vector2) -> void:
 	_companion_cell = null
 	_companion_tile = null
 	board_view.hold(_drag_tile)
+	_kill_spring(_drag_tile)
+	var node := board_view.node_for_tile(_drag_tile)
+	if node != null:
+		node.position = board_view.lifted_world(cell.position) + Vector3.UP * DRAG_LIFT_BONUS
 
 func _update_drag(screen_pos: Vector2) -> void:
 	var world_pos := _ground_plane_point(screen_pos)
@@ -74,15 +81,20 @@ func _update_drag(screen_pos: Vector2) -> void:
 
 	_update_companion(neighbor if _drag_direction != -1 else null)
 
-	var offset_vec := Vector3(offset, 0.0, 0.0) if horizontal else Vector3(0.0, 0.0, offset)
-	var dragged_node := board_view.node_for_tile(_drag_tile)
-	if dragged_node != null:
-		dragged_node.position = board_view.lifted_world(_drag_cell.position) + offset_vec
+	# The held tile follows the cursor within a cross/plus shape
+	var half_cell := BoardView3D.CELL_SIZE * 0.5 - TileView.RADIUS
+	var free_offset := (
+		Vector3(clampf(dx, -BoardView3D.CELL_SIZE, BoardView3D.CELL_SIZE), 0.0, clampf(dz, -half_cell, half_cell))
+		if horizontal
+		else Vector3(clampf(dx, -half_cell, half_cell), 0.0, clampf(dz, -BoardView3D.CELL_SIZE, BoardView3D.CELL_SIZE))
+	)
+	var drag_target := board_view.lifted_world(_drag_cell.position) + Vector3.UP * DRAG_LIFT_BONUS + free_offset
+	_drive(_drag_tile, drag_target, DRAG_FOLLOW_TIME)
 
 	if _companion_tile != null:
-		var companion_node := board_view.node_for_tile(_companion_tile)
-		if companion_node != null:
-			companion_node.position = board_view.lifted_world(_companion_cell.position) - offset_vec
+		var offset_vec := Vector3(offset, 0.0, 0.0) if horizontal else Vector3(0.0, 0.0, offset)
+		var companion_target := board_view.lifted_world(_companion_cell.position) - offset_vec
+		_drive(_companion_tile, companion_target, DRAG_FOLLOW_TIME)
 
 ## Keeps board_view's "held" set in sync with whichever cell is currently
 ## the drag target, so the tile living there previews sliding out of the
@@ -93,11 +105,47 @@ func _update_companion(neighbor: GridCell) -> void:
 		_companion_cell = neighbor
 		return
 	if _companion_tile != null:
-		board_view.release(_companion_tile)
+		_spring_back(_companion_tile, _companion_cell)
 	_companion_tile = new_tile
 	_companion_cell = neighbor
 	if _companion_tile != null:
 		board_view.hold(_companion_tile)
+
+func _drive(tile: Tile, target: Vector3, duration: float) -> Tween:
+	var node := board_view.node_for_tile(tile)
+	if node == null:
+		return null
+	_kill_spring(tile)
+	var tween := create_tween()
+	tween.tween_property(node, "position", target, duration).set_trans(Tween.TRANS_LINEAR)
+	_spring_tweens[tile] = tween
+	return tween
+
+## Tweens a dropped companion back to its own cell instead of leaving it
+## wherever the drag last pushed it (a hard snap there reads as a glitch just
+## as much as leaving it mid-air does).
+func _spring_back(tile: Tile, cell: GridCell) -> void:
+	var node := board_view.node_for_tile(tile)
+	if node == null:
+		board_view.release(tile)
+		return
+	var target := board_view.lifted_world(cell.position)
+	var tween := _drive(tile, target, DRAG_FOLLOW_TIME)
+	if tween == null:
+		board_view.release(tile)
+		return
+	tween.finished.connect(func() -> void:
+		if _spring_tweens.get(tile) == tween:
+			_spring_tweens.erase(tile)
+			if tile != _companion_tile and tile != _drag_tile:
+				board_view.release(tile)
+	)
+
+func _kill_spring(tile: Tile) -> void:
+	var existing: Tween = _spring_tweens.get(tile)
+	if existing != null and existing.is_valid():
+		existing.kill()
+	_spring_tweens.erase(tile)
 
 func _end_drag() -> void:
 	if _drag_cell == null:
@@ -108,6 +156,11 @@ func _end_drag() -> void:
 
 
 	var drag_cell := _drag_cell
+	for tile: Tile in _spring_tweens.keys():
+		var tween: Tween = _spring_tweens[tile]
+		if tween.is_valid():
+			tween.kill()
+	_spring_tweens.clear()
 	board_view.release_all()
 	if swap_neighbor != null:
 		swap_controller.try_swap(drag_cell, swap_neighbor)
