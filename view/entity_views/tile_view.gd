@@ -11,7 +11,6 @@ const CELL_SIZE := 1.0
 ## spawn-fall (a whole board height) must move at the same pace, or they
 ## visibly play back at different speeds and the cascade looks disjointed.
 const CELLS_PER_SECOND := 7.0
-const MIN_FALL_TIME := 0.12
 const DESTROY_TIME := 0.52
 
 var tile_colors: Array[Color] = [
@@ -34,15 +33,31 @@ func build_node(entity: BoardEntity) -> Node3D:
 	node.material_override = material
 	return node
 
-func play_spawn(node: Node3D, start: Vector3, target: Vector3, owner_node: Node) -> Tween:
+func play_spawn(node: Node3D, start: Vector3, reveal: Vector3, target: Vector3, owner_node: Node) -> Tween:
 	node.position = start
-	return play_move(node, target, owner_node)
+	node.scale = Vector3.ONE
+	node.visible = false
+	var tween := owner_node.create_tween()
+	var hidden_distance := start.distance_to(reveal) / CELL_SIZE
+	if hidden_distance > 0.001:
+		# No easing/min-duration floor here: it's invisible, only the total
+		# elapsed time (this + the visible leg) matters for staying in sync
+		# with the rest of the batch.
+		tween.tween_property(node, "position", reveal, hidden_distance / CELLS_PER_SECOND)
+	else:
+		node.position = reveal
+	tween.tween_callback(func() -> void: node.visible = true)
+	tween.tween_property(node, "position", target, _fall_duration(reveal, target)).set_trans(Tween.TRANS_LINEAR)
+	return tween
 
 func play_move(node: Node3D, target: Vector3, owner_node: Node) -> Tween:
 	node.scale = Vector3.ONE
+
+	node.visible = true
 	var duration := _fall_duration(node.position, target)
 	var tween := owner_node.create_tween()
-	tween.tween_property(node, "position", target, duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+
+	tween.tween_property(node, "position", target, duration).set_trans(Tween.TRANS_LINEAR)
 	return tween
 
 func play_destroy(node: Node3D, owner_node: Node, on_complete: Callable) -> Tween:
@@ -53,4 +68,4 @@ func play_destroy(node: Node3D, owner_node: Node, on_complete: Callable) -> Twee
 
 func _fall_duration(from: Vector3, to: Vector3) -> float:
 	var distance_cells := from.distance_to(to) / CELL_SIZE
-	return maxf(distance_cells / CELLS_PER_SECOND, MIN_FALL_TIME)
+	return distance_cells / CELLS_PER_SECOND

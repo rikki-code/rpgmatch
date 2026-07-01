@@ -38,6 +38,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		_update_drag(event.position)
 
 func _begin_drag(screen_pos: Vector2) -> void:
+	if not swap_controller.ctx.awaiting_player_input:
+		return
 	var cell := board.get_cell(board_view.world_to_cell(_ground_plane_point(screen_pos)))
 	if cell == null or not (cell.occupant is Tile):
 		return
@@ -104,16 +106,13 @@ func _end_drag() -> void:
 	if absf(_drag_fraction) >= DRAG_COMMIT_THRESHOLD and _drag_direction != -1:
 		swap_neighbor = _drag_cell.neighbor(_drag_direction)
 
-	# Release held tiles *before* attempting the swap: try_swap's
-	# swap_applied signal triggers board_view.refresh() synchronously, and
-	# a still-held tile is left alone by refresh() (no glide tween) — so
-	# releasing first is what lets the swap-settle actually animate.
+
 	var drag_cell := _drag_cell
 	board_view.release_all()
 	if swap_neighbor != null:
 		swap_controller.try_swap(drag_cell, swap_neighbor)
-	else:
-		board_view.refresh()
+
+	board_view.refresh()
 	_drag_cell = null
 	_drag_tile = null
 	_drag_direction = -1

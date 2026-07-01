@@ -1,10 +1,11 @@
-## Gravity for one column. A pit (or a gap, on a non-rectangular board)
-## splits the physical column into independent falling segments: a segment
-## never compacts across a pit/gap, so tiles above a destroyed pit-covering
-## tile don't fall through it, and tiles below a pit don't get pulled up
-## through it either. The cells a pit pins (see CellKind.pinned_neighbors)
-## are refilled directly by it — that's the local "new tile emerges from
-## the pit" source for whichever segment sits on that side.
+## Gravity for one column. A pit (or a gap, on a non-rectangular board) is
+## just an ordinary segment boundary — nothing about it is special-cased:
+## it splits the physical column into independent falling segments, and
+## each segment falls + top-spawns exactly like a segment touching the
+## board's own edge would. A segment resting on a pit simply has the pit as
+## its floor; a segment starting right after a pit has the pit as its
+## ceiling/spawn source instead of the board's real top edge. No cell is
+## ever frozen in place.
 ## See .claude/skills/match3-board-model/SKILL.md.
 class_name EffectGravityColumn
 extends Effect
@@ -17,30 +18,18 @@ func _init(p_x: int) -> void:
 func execute(board: BoardGraph) -> Array[Effect]:
 	var column := board.column_cells_top_to_bottom(x)
 
-	var pinned: Dictionary = {}  # GridCell -> true
-	for cell in column:
-		if cell == null:
-			continue
-		for neighbor in cell.kind.pinned_neighbors(cell):
-			pinned[neighbor] = true
-
 	var effects: Array[Effect] = []
-	for cell: GridCell in pinned.keys():
-		if cell.occupant == null:
-			effects.append(EffectSpawnTile.new(cell))
-
-	for segment in _segments(column, pinned):
+	for segment in _segments(column):
 		effects.append_array(_resolve_segment(segment))
 	return effects
 
-## Splits the column into contiguous holdable runs, breaking at pits, gaps,
-## and pinned cells (which are their own independent one-cell "segment"
-## handled above, not by generic compaction).
-static func _segments(column: Array[GridCell], pinned: Dictionary) -> Array:
+## Splits the column into contiguous holdable runs, breaking at pits and
+## gaps (a non-rectangular board can have no cell at all at some (x, y)).
+static func _segments(column: Array[GridCell]) -> Array:
 	var segments: Array = []
 	var current: Array[GridCell] = []
 	for cell in column:
-		if cell != null and cell.kind.can_hold_tile() and not pinned.has(cell):
+		if cell != null and cell.kind.can_hold_tile():
 			current.append(cell)
 		elif not current.is_empty():
 			segments.append(current)
@@ -75,8 +64,14 @@ static func _resolve_segment(segment: Array[GridCell]) -> Array[Effect]:
 	# it collision-free (a start row is always above the segment's topmost
 	# real row, so it can never coincide with a still-existing tile) while
 	# still landing at the same time as the segment's own settling tiles.
+	#
+	# That start row can still land inside whatever segment is physically
+	# above this one on the board (e.g. tiles resting above a pit) — gap i
+	# should only become visible once it's `i + 1` cells from its target,
+	# i.e. right as it crosses this segment's own top boundary, never
+	# before.
 	var gap_count := write_index + 1
 	var effects: Array[Effect] = []
 	for i in range(write_index, -1, -1):
-		effects.append(EffectSpawnTile.new(segment[i], gap_count))
+		effects.append(EffectSpawnTile.new(segment[i], gap_count, i + 1))
 	return effects

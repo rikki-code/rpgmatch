@@ -4,10 +4,10 @@
 class_name WorldGenParams
 extends Resource
 
-@export var width: int = 8
+@export var width: int = 10
 @export var height: int = 8
-@export var color_count: int = 5
-@export var pit_count: int = 2
+@export var color_count: int = 6
+@export var pit_count: int = 10
 @export var seed_value: int = 0
 @export var difficulty: int = 1
 @export var allow_enemies: bool = false

@@ -23,16 +23,32 @@ var _tile_nodes: Dictionary = {}  # BoardEntity -> Node3D
 var _entity_views: Dictionary = {}  # Script -> EntityView
 var _entity_tweens: Dictionary = {}  # BoardEntity -> Tween (latest tween driving it)
 ## Set by refresh() right before it processes an EffectSpawnTile, consumed
-## once for that cell — lets a spawned tile start its fall exactly as far
-## above its target as the effect says (see EffectGravityColumn), instead
-## of every spawn always falling the same disproportionate distance.
-var _pending_spawn_distance: Dictionary = {}  # GridCell -> int
+## once for that cell — lets a spawned tile start (and stay hidden until)
+## exactly as far above its target as the effect says (see
+## EffectGravityColumn), instead of every spawn always falling the same
+## disproportionate distance or being visible the whole way down.
+var _pending_spawn_distance: Dictionary = {}  # GridCell -> {fall: int, reveal: int}
 
 func setup(p_board: BoardGraph) -> void:
 	board = p_board
 	_register_entity_views()
 	_build_cells()
+	_seed_initial_spawn_distances()
 	refresh()
+
+## The opening board fill doesn't go through EffectSpawnTile at all —
+## BoardGenerator assigns every occupant directly — so without this,
+## refresh()'s per-cell lookup always misses and every tile falls the
+## generic full-board-height/1-cell-reveal fallback instead of the same
+## per-segment "falls from its own nearest border or pit" distances a real
+## gravity pass would compute (see EffectGravityColumn._segments/_resolve_segment).
+func _seed_initial_spawn_distances() -> void:
+	for x in range(board.width):
+		var column := board.column_cells_top_to_bottom(x)
+		for segment: Array in EffectGravityColumn._segments(column):
+			var size: int = segment.size()
+			for i in range(size):
+				_pending_spawn_distance[segment[i]] = {"fall": size, "reveal": i + 1}
 
 ## New BoardEntity subtype (rock, enemy...) registers its EntityView here —
 ## not a new branch in refresh().
@@ -80,7 +96,7 @@ func release_all() -> void:
 ## fall_distance hint — everything else still comes purely from board state.
 func refresh(effect: Effect = null) -> void:
 	if effect is EffectSpawnTile and effect.fall_distance > 0:
-		_pending_spawn_distance[effect.cell] = effect.fall_distance
+		_pending_spawn_distance[effect.cell] = {"fall": effect.fall_distance, "reveal": effect.reveal_distance}
 
 	var live_entities: Dictionary = {}  # BoardEntity -> GridCell
 	for cell: GridCell in board.all_cells():
@@ -103,16 +119,18 @@ func refresh(effect: Effect = null) -> void:
 			add_child(node)
 			_tile_nodes[entity] = node
 			# The effect tells us exactly how far above its target this tile
-			# needs to start to land in step with whatever else is falling
-			# in the same batch (see EffectGravityColumn). Without that hint
-			# (e.g. the initial board fill has no effect at all), fall the
-			# full board height, so it still reads as coming from an
-			# invisible extension above the board rather than popping in.
-			var fall_distance: int = _pending_spawn_distance.get(cell, board.height)
+			# needs to start (and, separately, how close it must get before
+			# it should actually be shown) to land in step with whatever
+			# else is falling in the same batch, without being visible while
+			# it's still passing through whatever segment happens to sit
+			# above this one (see EffectGravityColumn). Without a hint (e.g.
+			# the initial board fill has no effect at all), fall the full
+			# board height but only reveal for the last cell — always safe.
+			var info: Dictionary = _pending_spawn_distance.get(cell, {"fall": board.height, "reveal": 1})
 			_pending_spawn_distance.erase(cell)
-			var start_pos := cell.position - Vector2i(0, fall_distance)
-			var start := cell_to_world(start_pos) + Vector3.UP * TILE_LIFT
-			_track_tween(entity, view.play_spawn(node, start, target, self))
+			var start := cell_to_world(cell.position - Vector2i(0, info.fall)) + Vector3.UP * TILE_LIFT
+			var reveal := cell_to_world(cell.position - Vector2i(0, info.reveal)) + Vector3.UP * TILE_LIFT
+			_track_tween(entity, view.play_spawn(node, start, reveal, target, self))
 		elif not held_tiles.has(entity):
 			_track_tween(entity, view.play_move(node, target, self))
 
