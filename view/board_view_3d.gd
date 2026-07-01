@@ -12,6 +12,7 @@ signal settled
 
 const CELL_SIZE := 1.0
 const TILE_LIFT := 0.35
+const EXPLOSION_SCENE := preload("res://view/effects/tile_explosion.tscn")
 
 var board: BoardGraph
 ## Tiles InputController is manually positioning (the dragged tile and, for
@@ -97,6 +98,11 @@ func release_all() -> void:
 func refresh(effect: Effect = null) -> void:
 	if effect is EffectSpawnTile and effect.fall_distance > 0:
 		_pending_spawn_distance[effect.cell] = {"fall": effect.fall_distance, "reveal": effect.reveal_distance}
+	if effect is EffectSpawnBombTile:
+		_pending_spawn_distance[effect.cell] = {"fall": effect.fall_distance, "reveal": effect.reveal_distance}
+	if effect is EffectBombBlast:
+		for cell: GridCell in effect.cells:
+			_play_explosion(cell.position)
 
 	var live_entities: Dictionary = {}  # BoardEntity -> GridCell
 	for cell: GridCell in board.all_cells():
@@ -133,6 +139,12 @@ func refresh(effect: Effect = null) -> void:
 			_track_tween(entity, view.play_spawn(node, start, reveal, target, self))
 		elif not held_tiles.has(entity):
 			_track_tween(entity, view.play_move(node, target, self))
+
+func _play_explosion(cell_position: Vector2i) -> void:
+	var node: TileExplosion = EXPLOSION_SCENE.instantiate()
+	add_child(node)
+	node.position = cell_to_world(cell_position) + Vector3.UP * TILE_LIFT
+	node.play()
 
 func _play_destroy(entity: BoardEntity) -> void:
 	var node: Node3D = _tile_nodes[entity]

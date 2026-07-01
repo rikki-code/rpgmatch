@@ -12,3 +12,4 @@ extends Resource
 @export var difficulty: int = 1
 @export var allow_enemies: bool = false
 @export var allow_penalties: bool = false
+@export var bomb_spawn_chance: float = 0.00

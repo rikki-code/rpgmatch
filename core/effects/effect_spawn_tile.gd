@@ -25,7 +25,7 @@ func _init(p_cell: GridCell, p_fall_distance: int = 0, p_reveal_distance: int = 
 func execute(board: BoardGraph) -> Array[Effect]:
 	if cell.occupant != null or not cell.kind.can_hold_tile():
 		return []
-	var tile := Tile.new(board.rng.randi_range(0, board.color_count - 1))
-	tile.behaviors.append(ColorBehavior.new())
-	cell.occupant = tile
+	var color := board.rng.randi_range(0, board.color_count - 1)
+	var is_bomb := board.bomb_spawn_chance > 0.0 and board.rng.randf() < board.bomb_spawn_chance
+	cell.occupant = Tile.make_bomb() if is_bomb else Tile.make_normal(color)
 	return []

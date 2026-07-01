@@ -9,15 +9,15 @@ extends TurnPhase
 func execute(ctx: TurnContext) -> void:
 	while true:
 		var groups := MatchFinder.find_matches(ctx.board)
-		if groups.is_empty():
+		if groups.is_empty() and not ctx.board.has_empty_holdable_cell():
 			break
 
-		var destroy_effects: Array[Effect] = []
-		for group in groups:
-			for cell in group.cells:
-				destroy_effects.append(EffectDestroyTile.new(cell))
-		ctx.resolver.resolve(destroy_effects)
-		await ctx.animation_driver.await_settle()
+		if not groups.is_empty():
+			var match_effects: Array[Effect] = []
+			for group in groups:
+				match_effects.append(EffectResolveMatchGroup.new(group, ctx.resolver))
+			ctx.resolver.resolve(match_effects)
+			await ctx.animation_driver.await_settle()
 
 		var gravity_effects: Array[Effect] = []
 		for x in range(ctx.board.width):

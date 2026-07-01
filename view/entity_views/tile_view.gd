@@ -6,9 +6,24 @@
 class_name TileView
 extends EntityView
 
+## Mesh/material/marker-geometry for a tile live in these scenes (edit them
+## in the Godot editor, not here) — this script only ever sets the one
+## per-instance thing a .tscn can't know ahead of time: which of the 6
+## colors a given tile is.
+const DEFAULT_SCENE := preload("res://view/entity_views/tile.tscn")
+## Keyed by Tile.visual_kind() (a semantic tag, not a scene reference — core
+## doesn't know about view/.tscn). Add an entry here for any future
+## TileBehavior that overrides visual_kind(); tags with no entry fall back
+## to DEFAULT_SCENE.
+const SCENES_BY_VISUAL_KIND := {
+	&"bomb": preload("res://view/entity_views/tile_bomb.tscn"),
+}
+
 const CELL_SIZE := 1.0
+## Must match the SphereMesh radius baked into tile.tscn/tile_bomb.tscn —
+## InputController needs this number for its drag-clamp math and has no
+## other way to ask a .tscn for it.
 const RADIUS := CELL_SIZE * 0.38
-const HEIGHT := CELL_SIZE * 0.76
 ## Constant speed, not constant duration: a short settle (1 cell) and a long
 ## spawn-fall (a whole board height) must move at the same pace, or they
 ## visibly play back at different speeds and the cascade looks disjointed.
@@ -21,18 +36,14 @@ var tile_colors: Array[Color] = [
 
 func build_node(entity: BoardEntity) -> Node3D:
 	var tile: Tile = entity
-	var node := MeshInstance3D.new()
-	var sphere := SphereMesh.new()
-	sphere.radius = RADIUS
-	sphere.height = HEIGHT
-	node.mesh = sphere
-	var material := StandardMaterial3D.new()
-	material.albedo_color = tile_colors[tile.color % tile_colors.size()]
-	material.metallic = 0.35
-	material.roughness = 0.25
-	material.rim_enabled = true
-	material.rim = 0.4
-	node.material_override = material
+	var scene: PackedScene = SCENES_BY_VISUAL_KIND.get(tile.visual_kind(), DEFAULT_SCENE)
+	var node: Node3D = scene.instantiate()
+	var mesh: MeshInstance3D = node.get_node("Mesh")
+	# Duplicate so each tile gets its own color without repainting every
+	# other tile sharing the same .tres material resource.
+	var material: StandardMaterial3D = mesh.get_surface_override_material(0).duplicate()
+	material.albedo_color = tile.visual_color if tile.visual_color != null else tile_colors[tile.color % tile_colors.size()]
+	mesh.set_surface_override_material(0, material)
 	return node
 
 func play_spawn(node: Node3D, start: Vector3, reveal: Vector3, target: Vector3, owner_node: Node) -> Tween:

@@ -9,6 +9,7 @@ var board: BoardGraph
 var ctx: TurnContext
 var turn_manager: TurnManager
 var swap_controller: SwapController
+var detonate_controller: DetonateController
 
 func _ready() -> void:
 	var params := world_gen_params if world_gen_params != null else WorldGenParams.new()
@@ -17,6 +18,7 @@ func _ready() -> void:
 	ctx = TurnContext.new(board)
 	ctx.resolver = EffectResolver.new(board)
 	swap_controller = SwapController.new(ctx)
+	detonate_controller = DetonateController.new(ctx)
 
 	var phases: Array[TurnPhase] = [
 		PhasePlayerInput.new(),
@@ -33,13 +35,14 @@ func _ready() -> void:
 	ctx.resolver.effect_applied.connect(func(effect: Effect) -> void: board_view.refresh(effect))
 	swap_controller.swap_applied.connect(func(_a: GridCell, _b: GridCell) -> void: board_view.refresh())
 	swap_controller.swap_rejected.connect(func(_a: GridCell, _b: GridCell) -> void: board_view.refresh())
+	detonate_controller.detonated.connect(func(_cell: GridCell) -> void: board_view.refresh())
 
 	var camera: Camera3D = $Camera3D
 	_place_camera(camera)
 	get_tree().root.size_changed.connect(func() -> void: _place_camera(camera))
 
 	var input_controller: InputController = $InputController
-	input_controller.setup(camera, board_view, board, swap_controller)
+	input_controller.setup(camera, board_view, board, swap_controller, detonate_controller)
 
 	turn_manager.start()
 

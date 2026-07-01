@@ -15,6 +15,7 @@ var camera: Camera3D
 var board_view: BoardView3D
 var board: BoardGraph
 var swap_controller: SwapController
+var detonate_controller: DetonateController
 
 var _drag_cell: GridCell
 var _drag_tile: Tile
@@ -25,20 +26,34 @@ var _companion_cell: GridCell
 var _companion_tile: Tile
 var _spring_tweens: Dictionary = {}  # Tile -> Tween
 
-func setup(p_camera: Camera3D, p_board_view: BoardView3D, p_board: BoardGraph, p_swap_controller: SwapController) -> void:
+func setup(p_camera: Camera3D, p_board_view: BoardView3D, p_board: BoardGraph, p_swap_controller: SwapController, p_detonate_controller: DetonateController) -> void:
 	camera = p_camera
 	board_view = p_board_view
 	board = p_board
 	swap_controller = p_swap_controller
+	detonate_controller = p_detonate_controller
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
-			_begin_drag(event.position)
+			if event.double_click:
+				_try_detonate(event.position)
+			else:
+				_begin_drag(event.position)
 		else:
 			_end_drag()
 	elif event is InputEventMouseMotion and _drag_cell != null:
 		_update_drag(event.position)
+
+## Double-click on a bomb blows it up directly instead of starting a drag —
+## a separate player action from swapping (see DetonateController).
+func _try_detonate(screen_pos: Vector2) -> void:
+	if not swap_controller.ctx.awaiting_player_input:
+		return
+	var cell := board.get_cell(board_view.world_to_cell(_ground_plane_point(screen_pos)))
+	if cell == null:
+		return
+	detonate_controller.try_detonate(cell)
 
 func _begin_drag(screen_pos: Vector2) -> void:
 	if not swap_controller.ctx.awaiting_player_input:

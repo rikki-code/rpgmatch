@@ -27,7 +27,7 @@ static func _collect_runs(board: BoardGraph, axis_dir: GridDirection.Dir, matche
 		if not (cell.occupant is Tile):
 			continue
 		var behind := cell.neighbor(behind_dir)
-		if behind != null and behind.occupant is Tile and (behind.occupant as Tile).can_match_with(cell.occupant):
+		if behind != null and behind.occupant is Tile and _matches(behind.occupant, cell.occupant):
 			continue  # not a run start; the actual start of this run will collect it
 
 		var run: Array[GridCell] = [cell]
@@ -37,7 +37,7 @@ static func _collect_runs(board: BoardGraph, axis_dir: GridDirection.Dir, matche
 			if next == null or not (next.occupant is Tile):
 				break
 			var current_tile: Tile = current.occupant
-			if not current_tile.can_match_with(next.occupant):
+			if not _matches(current_tile, next.occupant):
 				break
 			run.append(next)
 			current = next
@@ -45,6 +45,9 @@ static func _collect_runs(board: BoardGraph, axis_dir: GridDirection.Dir, matche
 		if run.size() >= 3:
 			for c in run:
 				matched[c] = true
+
+static func _matches(a: Tile, b: Tile) -> bool:
+	return a.can_match_with(b) and b.can_match_with(a)
 
 ## Connected-component flood fill, but restricted to cells already flagged
 ## by _collect_runs — this only merges touching runs, it never grows a
@@ -59,6 +62,8 @@ static func _flood_fill_within(start: GridCell, matched: Dictionary, visited: Di
 		for dir in GridDirection.ALL:
 			var neighbor := current.neighbor(dir)
 			if neighbor == null or visited.has(neighbor.position) or not matched.has(neighbor):
+				continue
+			if not _matches(current.occupant as Tile, neighbor.occupant as Tile):
 				continue
 			visited[neighbor.position] = true
 			stack.append(neighbor)

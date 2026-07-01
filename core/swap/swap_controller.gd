@@ -42,6 +42,7 @@ func try_swap(cell_a: GridCell, cell_b: GridCell) -> bool:
 		swap_rejected.emit(cell_a, cell_b)
 		return false
 
+	ctx.board.swapped_tiles = [tile_a, tile_b]
 	swap_applied.emit(cell_a, cell_b)
 	await ctx.animation_driver.await_settle()
 	ctx.turn_manager.notify_phase_done()

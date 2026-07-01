@@ -14,6 +14,7 @@ static func generate(params: WorldGenParams) -> BoardGraph:
 
 	var graph := BoardGraph.new(params.width, params.height)
 	graph.color_count = params.color_count
+	graph.bomb_spawn_chance = params.bomb_spawn_chance
 	graph.rng = rng
 
 	for y in range(params.height):
@@ -72,9 +73,7 @@ static func _pick_color(color_count: int, forbidden: Array[int], rng: RandomNumb
 	return color
 
 static func _make_tile(color: int) -> Tile:
-	var tile := Tile.new(color)
-	tile.behaviors.append(ColorBehavior.new())
-	return tile
+	return Tile.make_normal(color)
 
 static func _shuffled(array: Array, rng: RandomNumberGenerator) -> Array:
 	var result := array.duplicate()

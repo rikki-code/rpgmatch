@@ -9,6 +9,7 @@ func is_instant() -> bool:
 
 func enter(ctx: TurnContext) -> void:
 	ctx.awaiting_player_input = true
+	ctx.board.swapped_tiles = []
 
 func exit(ctx: TurnContext) -> void:
 	ctx.awaiting_player_input = false

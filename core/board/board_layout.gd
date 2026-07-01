@@ -37,8 +37,6 @@ func build_graph() -> BoardGraph:
 	for pos in fixed_tile_colors.keys():
 		var cell := graph.get_cell(pos)
 		if cell != null:
-			var tile := Tile.new(fixed_tile_colors[pos])
-			tile.behaviors.append(ColorBehavior.new())
-			cell.occupant = tile
+			cell.occupant = Tile.make_normal(fixed_tile_colors[pos])
 
 	return graph
