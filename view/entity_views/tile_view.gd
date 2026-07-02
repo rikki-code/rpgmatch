@@ -1,48 +1,53 @@
-## Visual recipe for Tile: colored sphere, shrink-to-zero destroy, and the
-## same plain fall for everything else — a brand new tile is just a fall
-## that starts higher up (from the empty space above the board), not a
-## separate "spawn in place" animation. That's what makes a freshly-spawned
-## tile read as "falling in" instead of "popping into existence".
+## Visual recipe for Tile: crystal shape (or bomb), shrink-to-zero destroy, plain fall otherwise.
 class_name TileView
 extends EntityView
 
-## Mesh/material/marker-geometry for a tile live in these scenes (edit them
-## in the Godot editor, not here) — this script only ever sets the one
-## per-instance thing a .tscn can't know ahead of time: which of the 6
-## colors a given tile is.
-const DEFAULT_SCENE := preload("res://view/entity_views/tile.tscn")
-## Keyed by Tile.visual_kind() (a semantic tag, not a scene reference — core
-## doesn't know about view/.tscn). Add an entry here for any future
-## TileBehavior that overrides visual_kind(); tags with no entry fall back
-## to DEFAULT_SCENE.
+## Mesh/material live in these scenes, edited in the editor. Keyed by
+## Tile.visual_kind(); no entry falls back to CRYSTAL_SCENES_BY_COLOR.
 const SCENES_BY_VISUAL_KIND := {
 	&"bomb": preload("res://view/entity_views/tile_bomb.tscn"),
 }
+## Plain color tile picks shape by Tile.color, unrelated to visual_kind().
+const CRYSTAL_SCENES_BY_COLOR: Array[PackedScene] = [
+	preload("res://view/entity_views/tile_crystal_0.tscn"),
+	preload("res://view/entity_views/tile_crystal_1.tscn"),
+	preload("res://view/entity_views/tile_crystal_2.tscn"),
+	preload("res://view/entity_views/tile_crystal_3.tscn"),
+	preload("res://view/entity_views/tile_crystal_4.tscn"),
+	preload("res://view/entity_views/tile_crystal_5.tscn"),
+]
 
 const CELL_SIZE := 1.0
-## Must match the SphereMesh radius baked into tile.tscn/tile_bomb.tscn —
-## InputController needs this number for its drag-clamp math and has no
-## other way to ask a .tscn for it.
-const RADIUS := CELL_SIZE * 0.38
-## Constant speed, not constant duration: a short settle (1 cell) and a long
-## spawn-fall (a whole board height) must move at the same pace, or they
-## visibly play back at different speeds and the cascade looks disjointed.
+## Safe general radius for InputController's drag clamp — crystal shapes vary a bit.
+const RADIUS := CELL_SIZE * 0.36
+## Must match tile_crystal_material.tres's emission_energy_multiplier.
+const BASE_EMISSION_ENERGY := 0.9
+const HIGHLIGHT_EMISSION_ENERGY := 3.2
+## Same pace for short settles and long spawn-falls, or the cascade looks disjointed.
 const CELLS_PER_SECOND := 7.0
 const DESTROY_TIME := 0.52
+## Fuse-catch beat before a bomb's node shrinks away.
+const IGNITE_TIME := 0.15
 
 var tile_colors: Array[Color] = [
-	Color.CRIMSON, Color.ORANGE, Color.GOLD, Color.SEA_GREEN, Color.ROYAL_BLUE, Color.MEDIUM_PURPLE,
+	Color.SEA_GREEN, Color.ROYAL_BLUE, Color.MEDIUM_PURPLE, Color.GOLDENROD, Color.CRIMSON, Color.ORANGE_RED
 ]
 
 func build_node(entity: BoardEntity) -> Node3D:
 	var tile: Tile = entity
-	var scene: PackedScene = SCENES_BY_VISUAL_KIND.get(tile.visual_kind(), DEFAULT_SCENE)
+	var visual_kind := tile.visual_kind()
+	var scene: PackedScene = SCENES_BY_VISUAL_KIND.get(visual_kind)
+	if scene == null:
+		scene = CRYSTAL_SCENES_BY_COLOR[tile.color % CRYSTAL_SCENES_BY_COLOR.size()]
 	var node: Node3D = scene.instantiate()
 	var mesh: MeshInstance3D = node.get_node("Mesh")
 	# Duplicate so each tile gets its own color without repainting every
 	# other tile sharing the same .tres material resource.
 	var material: StandardMaterial3D = mesh.get_surface_override_material(0).duplicate()
-	material.albedo_color = tile.visual_color if tile.visual_color != null else tile_colors[tile.color % tile_colors.size()]
+	var color: Color = tile.visual_color if tile.visual_color != null else tile_colors[tile.color % tile_colors.size()]
+	material.albedo_color = Color(color.r, color.g, color.b, material.albedo_color.a)
+	if material.emission_enabled:
+		material.emission = color
 	mesh.set_surface_override_material(0, material)
 	return node
 
@@ -75,9 +80,55 @@ func play_move(node: Node3D, target: Vector3, owner_node: Node) -> Tween:
 
 func play_destroy(node: Node3D, owner_node: Node, on_complete: Callable) -> Tween:
 	var tween := owner_node.create_tween()
-	tween.tween_property(node, "scale", Vector3.ZERO, DESTROY_TIME)
+	if node.has_node("Spark"):
+		# Bomb: fuse catches, then pops instantly — no lingering shrink with a lit fuse.
+		_ignite_fuse(node, tween)
+		tween.tween_callback(func() -> void: node.visible = false)
+	else:
+		tween.tween_property(node, "scale", Vector3.ZERO, DESTROY_TIME)
 	tween.tween_callback(on_complete)
 	return tween
+
+## Purely cosmetic — flares Spark/SparkLight (tile_bomb.tscn), doesn't touch detonation timing.
+func _ignite_fuse(node: Node3D, tween: Tween) -> void:
+	var spark: MeshInstance3D = node.get_node("Spark")
+	var light: OmniLight3D = node.get_node("SparkLight")
+	spark.visible = true
+	tween.set_parallel(true)
+	tween.tween_property(spark, "scale", Vector3.ONE * 1.6, IGNITE_TIME)
+	tween.tween_property(light, "light_energy", 3.0, IGNITE_TIME)
+	tween.set_parallel(false)
+
+## Emission alone washes out on faces catching full direct light (e.g. tile_crystal_2's flat top);
+## scale pulse keeps it visible regardless of shape.
+const HIGHLIGHT_SCALE := 1.18
+
+func set_highlighted(node: Node3D, on: bool) -> void:
+	var mesh: MeshInstance3D = node.get_node_or_null("Mesh")
+	if mesh == null:
+		return
+	var material: StandardMaterial3D = mesh.get_surface_override_material(0)
+	if material == null:
+		return
+	var existing: Tween = node.get_meta(&"highlight_tween") if node.has_meta(&"highlight_tween") else null
+	if existing != null and existing.is_valid():
+		existing.kill()
+	# Cached once so meshes with their own baked scale (e.g. tile_crystal_3) don't reset to Vector3.ONE.
+	var base_scale: Vector3 = node.get_meta(&"highlight_base_scale") if node.has_meta(&"highlight_base_scale") else mesh.scale
+	node.set_meta(&"highlight_base_scale", base_scale)
+	if not on:
+		node.remove_meta(&"highlight_tween")
+		material.emission_energy_multiplier = BASE_EMISSION_ENERGY
+		mesh.scale = base_scale
+		return
+	# .parallel() is one-shot per tweener; chain()+set_parallel(true) collapsed both phases into one.
+	var tween := node.create_tween()
+	tween.set_loops()
+	tween.tween_property(material, "emission_energy_multiplier", HIGHLIGHT_EMISSION_ENERGY, 0.35).set_trans(Tween.TRANS_SINE)
+	tween.parallel().tween_property(mesh, "scale", base_scale * HIGHLIGHT_SCALE, 0.35).set_trans(Tween.TRANS_SINE)
+	tween.tween_property(material, "emission_energy_multiplier", BASE_EMISSION_ENERGY, 0.35).set_trans(Tween.TRANS_SINE)
+	tween.parallel().tween_property(mesh, "scale", base_scale, 0.35).set_trans(Tween.TRANS_SINE)
+	node.set_meta(&"highlight_tween", tween)
 
 func _fall_duration(from: Vector3, to: Vector3) -> float:
 	var distance_cells := from.distance_to(to) / CELL_SIZE

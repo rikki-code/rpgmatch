@@ -1,0 +1,22 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Material" path="res://view/entity_views/cell_pit_rim_material.tres" id="1"]
+[ext_resource type="Material" path="res://view/entity_views/cell_pit_void_material.tres" id="2"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_rim"]
+size = Vector3(0.94, 0.1, 0.94)
+
+[sub_resource type="BoxMesh" id="BoxMesh_void"]
+size = Vector3(0.7, 0.7, 0.7)
+
+[node name="CellPit" type="Node3D"]
+
+[node name="Rim" type="MeshInstance3D" parent="."]
+position = Vector3(0, -0.06, 0)
+mesh = SubResource("BoxMesh_rim")
+surface_material_override/0 = ExtResource("1")
+
+[node name="Void" type="MeshInstance3D" parent="."]
+position = Vector3(0, -0.5, 0)
+mesh = SubResource("BoxMesh_void")
+surface_material_override/0 = ExtResource("2")

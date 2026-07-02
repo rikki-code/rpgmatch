@@ -47,3 +47,25 @@ func try_swap(cell_a: GridCell, cell_b: GridCell) -> bool:
 	await ctx.animation_driver.await_settle()
 	ctx.turn_manager.notify_phase_done()
 	return true
+
+## Non-mutating: Tiles that would end up matched if cell_a/cell_b swapped now
+## (empty if not). Read while swapped, before reverting — reverted state would
+## report the pre-swap occupants instead of who'd actually be there.
+func preview_match(cell_a: GridCell, cell_b: GridCell) -> Array[Tile]:
+	var empty: Array[Tile] = []
+	if not (cell_a.occupant is Tile) or not (cell_b.occupant is Tile):
+		return empty
+	var tile_a: Tile = cell_a.occupant
+	var tile_b: Tile = cell_b.occupant
+	if tile_a.blocks_swap() or tile_b.blocks_swap():
+		return empty
+
+	ctx.board.swap_occupants(cell_a, cell_b)
+	var result: Array[Tile] = []
+	for group in MatchFinder.find_matches(ctx.board):
+		if group.cells.has(cell_a) or group.cells.has(cell_b):
+			for cell: GridCell in group.cells:
+				var occupant_tile: Tile = cell.occupant
+				result.append(occupant_tile)
+	ctx.board.swap_occupants(cell_a, cell_b)
+	return result

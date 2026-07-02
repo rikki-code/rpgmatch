@@ -13,6 +13,12 @@ signal settled
 const CELL_SIZE := 1.0
 const TILE_LIFT := 0.35
 const EXPLOSION_SCENE := preload("res://view/effects/tile_explosion.tscn")
+const LIGHTNING_SCENE := preload("res://view/effects/match_lightning.tscn")
+
+const CELL_SCENES_BY_VISUAL_KIND := {
+	&"pit": preload("res://view/entity_views/cell_pit.tscn"),
+}
+const DEFAULT_CELL_SCENE := preload("res://view/entity_views/cell_ground.tscn")
 
 var board: BoardGraph
 ## Tiles InputController is manually positioning (the dragged tile and, for
@@ -29,6 +35,8 @@ var _entity_tweens: Dictionary = {}  # BoardEntity -> Tween (latest tween drivin
 ## EffectGravityColumn), instead of every spawn always falling the same
 ## disproportionate distance or being visible the whole way down.
 var _pending_spawn_distance: Dictionary = {}  # GridCell -> {fall: int, reveal: int}
+
+var _preview_entities: Dictionary = {}  # BoardEntity -> true
 
 func setup(p_board: BoardGraph) -> void:
 	board = p_board
@@ -92,6 +100,26 @@ func release(tile: Tile) -> void:
 func release_all() -> void:
 	held_tiles.clear()
 
+## Diffs against the previous call so an already-highlighted tile doesn't restart its pulse.
+func set_match_preview(entities: Array) -> void:
+	var new_entities: Dictionary = {}  # BoardEntity -> true
+	for entity in entities:
+		new_entities[entity] = true
+
+	for entity in _preview_entities.keys():
+		if not new_entities.has(entity):
+			_set_entity_highlighted(entity, false)
+	for entity in new_entities.keys():
+		if not _preview_entities.has(entity):
+			_set_entity_highlighted(entity, true)
+	_preview_entities = new_entities
+
+func _set_entity_highlighted(entity: BoardEntity, on: bool) -> void:
+	var node: Node3D = _tile_nodes.get(entity)
+	var view: EntityView = _view_for(entity)
+	if node != null and view != null:
+		view.set_highlighted(node, on)
+
 ## `effect` is the Effect that was just applied (see game_root's
 ## effect_applied connection). refresh() only reads it to pick up a spawn's
 ## fall_distance hint — everything else still comes purely from board state.
@@ -101,8 +129,9 @@ func refresh(effect: Effect = null) -> void:
 	if effect is EffectSpawnBombTile:
 		_pending_spawn_distance[effect.cell] = {"fall": effect.fall_distance, "reveal": effect.reveal_distance}
 	if effect is EffectBombBlast:
-		for cell: GridCell in effect.cells:
-			_play_explosion(cell.position)
+		_play_delayed_explosion(effect.cells)
+	if effect is EffectMatchLightning:
+		_play_lightning(effect.cells)
 
 	var live_entities: Dictionary = {}  # BoardEntity -> GridCell
 	for cell: GridCell in board.all_cells():
@@ -140,11 +169,33 @@ func refresh(effect: Effect = null) -> void:
 		elif not held_tiles.has(entity):
 			_track_tween(entity, view.play_move(node, target, self))
 
+## Waits out TileView's fuse-ignite beat so the flash reads as "fuse caught, then boom", not the reverse.
+func _play_delayed_explosion(cells: Array) -> void:
+	await get_tree().create_timer(TileView.IGNITE_TIME).timeout
+	for cell: GridCell in cells:
+		_play_explosion(cell.position)
+
 func _play_explosion(cell_position: Vector2i) -> void:
 	var node: TileExplosion = EXPLOSION_SCENE.instantiate()
 	add_child(node)
 	node.position = cell_to_world(cell_position) + Vector3.UP * TILE_LIFT
 	node.play()
+
+## RIGHT/DOWN only so each adjacent pair draws once, not twice.
+func _play_lightning(cells: Array) -> void:
+	var in_group: Dictionary = {}  # Vector2i -> true
+	for cell: GridCell in cells:
+		in_group[cell.position] = true
+	for cell: GridCell in cells:
+		for dir in [GridDirection.Dir.RIGHT, GridDirection.Dir.DOWN]:
+			var neighbor := cell.neighbor(dir)
+			if neighbor != null and in_group.has(neighbor.position):
+				_spawn_lightning_bolt(lifted_world(cell.position), lifted_world(neighbor.position))
+
+func _spawn_lightning_bolt(from: Vector3, to: Vector3) -> void:
+	var node: MatchLightning = LIGHTNING_SCENE.instantiate()
+	add_child(node)
+	node.play(from, to)
 
 func _play_destroy(entity: BoardEntity) -> void:
 	var node: Node3D = _tile_nodes[entity]
@@ -176,13 +227,7 @@ func _on_tween_finished(entity: BoardEntity, tween: Tween) -> void:
 
 func _build_cells() -> void:
 	for cell: GridCell in board.all_cells():
-		var node := MeshInstance3D.new()
-		var box := BoxMesh.new()
-		box.size = Vector3(CELL_SIZE * 0.94, 0.2, CELL_SIZE * 0.94)
-		node.mesh = box
-		var material := StandardMaterial3D.new()
-		material.roughness = 0.85
-		material.albedo_color = Color(0.55, 0.57, 0.62) if cell.kind.can_hold_tile() else Color(0.03, 0.03, 0.05)
-		node.material_override = material
+		var scene: PackedScene = CELL_SCENES_BY_VISUAL_KIND.get(cell.kind.visual_kind(), DEFAULT_CELL_SCENE)
+		var node: Node3D = scene.instantiate()
 		node.position = cell_to_world(cell.position)
 		add_child(node)

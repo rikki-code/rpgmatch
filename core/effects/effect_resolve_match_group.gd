@@ -23,22 +23,20 @@ func _init(p_group: MatchGroup, p_resolver: EffectResolver) -> void:
 
 func execute(_board: BoardGraph) -> Array[Effect]:
 	var cells := group.cells
+	var effects: Array[Effect] = [EffectMatchLightning.new(cells)]
+	for cell in cells:
+		effects.append(EffectDestroyTile.new(cell))
+
 	if cells.size() < BOMB_MATCH_THRESHOLD:
-		var effects: Array[Effect] = []
-		for cell in cells:
-			effects.append(EffectDestroyTile.new(cell))
 		return effects
 
 	var anchor: GridCell = _central_cell(cells)
-	var destroy_effects: Array[Effect] = []
-	for cell in cells:
-		destroy_effects.append(EffectDestroyTile.new(cell))
 	# Reentrant on purpose: `resolver` is the same EffectResolver driving the
 	# outer loop this effect is itself being executed from — its `resolve()`
 	# only touches a local queue variable, so nesting a call is safe, and it
 	# means this cascade still emits effect_applied per step (view
 	# animations/pacing) instead of vanishing into a throwaway resolver.
-	resolver.resolve(destroy_effects)
+	resolver.resolve(effects)
 	return [EffectSpawnBombTile.new(anchor)]
 
 static func _central_cell(cells: Array[GridCell]) -> GridCell:

@@ -30,3 +30,6 @@ func play_move(_node: Node3D, _target: Vector3, _owner_node: Node) -> Tween:
 ## `on_complete` (typically frees the node) once the animation is done.
 func play_destroy(_node: Node3D, _owner_node: Node, _on_complete: Callable) -> Tween:
 	return null
+
+func set_highlighted(_node: Node3D, _on: bool) -> void:
+	pass

@@ -68,6 +68,7 @@ func _begin_drag(screen_pos: Vector2) -> void:
 	_drag_fraction = 0.0
 	_companion_cell = null
 	_companion_tile = null
+	board_view.set_match_preview([])
 	board_view.hold(_drag_tile)
 	_kill_spring(_drag_tile)
 	var node := board_view.node_for_tile(_drag_tile)
@@ -125,6 +126,13 @@ func _update_companion(neighbor: GridCell) -> void:
 	_companion_cell = neighbor
 	if _companion_tile != null:
 		board_view.hold(_companion_tile)
+	_update_match_preview()
+
+func _update_match_preview() -> void:
+	if _companion_cell == null:
+		board_view.set_match_preview([])
+		return
+	board_view.set_match_preview(swap_controller.preview_match(_drag_cell, _companion_cell))
 
 func _drive(tile: Tile, target: Vector3, duration: float) -> Tween:
 	var node := board_view.node_for_tile(tile)
@@ -177,6 +185,7 @@ func _end_drag() -> void:
 			tween.kill()
 	_spring_tweens.clear()
 	board_view.release_all()
+	board_view.set_match_preview([])
 	if swap_neighbor != null:
 		swap_controller.try_swap(drag_cell, swap_neighbor)
 

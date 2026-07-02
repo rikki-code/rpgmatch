@@ -8,3 +8,6 @@ func can_hold_tile() -> bool:
 
 func display_name() -> String:
 	return "cell"
+
+func visual_kind() -> StringName:
+	return &"ground"
