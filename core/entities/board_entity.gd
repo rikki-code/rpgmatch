@@ -12,9 +12,10 @@ func display_name() -> String:
 func can_fall() -> bool:
 	return true
 
-## Reacts to `amount` damage delivered by EffectDamageEntity (see
-## effect_damage_entity.gd). Default no-op: an entity with no concept of
-## health just ignores a hit. Anything that explodes, cracks, or dies from
-## area damage overrides this.
-func on_damage(_amount: int, _cell: GridCell, _board: BoardGraph) -> Array[Effect]:
+## Reacts to `amount` damage delivered by EffectSplashDamage
+func on_splash_damage(_amount: int, _cell: GridCell, _board: BoardGraph) -> Array[Effect]:
 	return []
+
+## Reacts to `amount` damage delivered by e.g EffectBlastDamage
+func on_damage(_amount: int, cell: GridCell, _board: BoardGraph) -> Array[Effect]:
+	return [EffectDestroyTile.new(cell)]

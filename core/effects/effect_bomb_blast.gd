@@ -1,9 +1,10 @@
 ## Tags a bomb's blast for the view — BoardView3D plays a flash on every
 ## cell in `cells` when it sees this effect go by (see
-## view/effects/tile_explosion.tscn) — then turns into the actual
-## EffectDestroyTile per cell, so the real board mutation is still just an
-## ordinary destroy per cell, cascading exactly like any other destroy (a
-## bomb caught in another bomb's blast chains normally).
+## view/effects/tile_explosion.tscn) — then turns into an EffectBlastDamage
+## per cell (a direct explosion hit, not the soft splash EffectSplashDamage
+## delivers). A bomb caught in the radius reacts via BombCore.on_damage and
+## chains; anything else with no opinion just dies (see
+## BoardEntity.on_damage).
 class_name EffectBombBlast
 extends Effect
 
@@ -17,5 +18,5 @@ func _init(p_origin: GridCell, p_cells: Array[GridCell]) -> void:
 func execute(_board: BoardGraph) -> Array[Effect]:
 	var effects: Array[Effect] = []
 	for cell in cells:
-		effects.append(EffectDestroyTile.new(cell))
+		effects.append(EffectBlastDamage.new(cell, 1))
 	return effects

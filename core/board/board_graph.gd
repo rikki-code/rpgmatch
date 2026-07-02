@@ -9,6 +9,7 @@ var width: int
 var height: int
 var color_count: int = 5
 var bomb_spawn_chance: float = 0.0
+var color_bomb_spawn_chance: float = 0.0
 var swapped_tiles: Array[Tile] = []
 var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var cells: Dictionary = {}  # Vector2i -> GridCell
@@ -63,6 +64,17 @@ func cells_within_manhattan_radius(origin: GridCell, radius: int, include_origin
 		for dy in range(-radius, radius + 1):
 			if absi(dx) + absi(dy) > radius:
 				continue
+			if dx == 0 and dy == 0 and not include_origin:
+				continue
+			var target := get_cell(origin.position + Vector2i(dx, dy))
+			if target != null:
+				result.append(target)
+	return result
+
+func cells_within_square_radius(origin: GridCell, radius: int, include_origin: bool = false) -> Array[GridCell]:
+	var result: Array[GridCell] = []
+	for dx in range(-radius, radius + 1):
+		for dy in range(-radius, radius + 1):
 			if dx == 0 and dy == 0 and not include_origin:
 				continue
 			var target := get_cell(origin.position + Vector2i(dx, dy))

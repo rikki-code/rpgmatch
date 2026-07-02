@@ -13,3 +13,4 @@ extends Resource
 @export var allow_enemies: bool = false
 @export var allow_penalties: bool = false
 @export var bomb_spawn_chance: float = 0.00
+@export var color_bomb_spawn_chance: float = 0.01

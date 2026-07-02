@@ -17,15 +17,17 @@ func on_turn_tick(_self_tile: Tile, _cell: GridCell, _board: BoardGraph) -> Arra
 func on_damage(_self_tile: Tile, _amount: int, _cell: GridCell, _board: BoardGraph) -> Array[Effect]:
 	return []
 
+func on_splash_damage(_self_tile: Tile, _amount: int, _cell: GridCell, _board: BoardGraph) -> Array[Effect]:
+	return []
+
 func blocks_swap(_self_tile: Tile) -> bool:
 	return false
 
-## Whether the player can directly activate this tile (e.g. double-click a
-## bomb to detonate it early) instead of only reacting to matches/damage.
-func is_manually_detonatable(_self_tile: Tile) -> bool:
+## Whether the player can directly activate this tile
+func is_manually_triggerable(_self_tile: Tile) -> bool:
 	return false
 
-func detonate(_self_tile: Tile, _cell: GridCell, _board: BoardGraph) -> Array[Effect]:
+func manual_trigger(_self_tile: Tile, _cell: GridCell, _board: BoardGraph) -> Array[Effect]:
 	return []
 
 func visual_kind(_self_tile: Tile) -> StringName:

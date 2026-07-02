@@ -22,19 +22,24 @@ static func make_normal(p_color: int) -> Tile:
 	tile.behaviors.append(SplashDamageBehavior.new())
 	return tile
 
-## A bomb that also matches by color (so it can be swapped/chained into
-## same-color runs) — tinted from the shared palette like any normal tile.
 static func make_color_bomb(p_color: int, radius: int = 1) -> Tile:
 	var tile := Tile.new(p_color)
+	# BombCore is itself a TileBehavior (reacts to on_damage — a direct
+	# blast hit always chains, no bomb variant would ever want to opt out).
+	var core := BombCore.new(radius, BombCore.Shape.MANHATTAN)
 	tile.behaviors.append(ColorBehavior.new())
-	tile.behaviors.append(BombBehavior.new(radius))
+	tile.behaviors.append(core)
+	tile.behaviors.append(BombMatchBehavior.new(core))
 	return tile
 
 static func make_bomb(radius: int = 1) -> Tile:
 	var tile := Tile.new()
-	tile.color = -1;
+	tile.color = -1
 	tile.visual_color = Color.BLACK
-	tile.behaviors.append(BombBehavior.new(radius))
+	var core := BombCore.new(radius, BombCore.Shape.SQUARE)
+	tile.behaviors.append(core)
+	tile.behaviors.append(BombManualTriggerBehavior.new(core))
+	tile.behaviors.append(BombSwapSplashBehavior.new(core))
 	return tile
 
 func display_name() -> String:
@@ -54,16 +59,16 @@ func blocks_swap() -> bool:
 			return true
 	return false
 
-func is_manually_detonatable() -> bool:
+func is_manually_triggerable() -> bool:
 	for behavior in behaviors:
-		if behavior.is_manually_detonatable(self):
+		if behavior.is_manually_triggerable(self):
 			return true
 	return false
 
-func detonate(cell: GridCell, board: BoardGraph) -> Array[Effect]:
+func manual_trigger(cell: GridCell, board: BoardGraph) -> Array[Effect]:
 	var effects: Array[Effect] = []
 	for behavior in behaviors:
-		effects.append_array(behavior.detonate(self, cell, board))
+		effects.append_array(behavior.manual_trigger(self, cell, board))
 	return effects
 
 func visual_kind() -> StringName:
@@ -85,8 +90,15 @@ func on_turn_tick(cell: GridCell, board: BoardGraph) -> Array[Effect]:
 		effects.append_array(behavior.on_turn_tick(self, cell, board))
 	return effects
 
-func on_damage(amount: int, cell: GridCell, board: BoardGraph) -> Array[Effect]:
+func on_splash_damage(amount: int, cell: GridCell, board: BoardGraph) -> Array[Effect]:
 	var effects: Array[Effect] = []
 	for behavior in behaviors:
-		effects.append_array(behavior.on_damage(self, amount, cell, board))
+		effects.append_array(behavior.on_splash_damage(self, amount, cell, board))
 	return effects
+
+func on_damage(amount: int, cell: GridCell, board: BoardGraph) -> Array[Effect]:
+	for behavior in behaviors:
+		var effects := behavior.on_damage(self, amount, cell, board)
+		if not effects.is_empty():
+			return effects
+	return [EffectDestroyTile.new(cell)]

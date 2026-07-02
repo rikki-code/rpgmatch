@@ -26,6 +26,10 @@ func execute(board: BoardGraph) -> Array[Effect]:
 	if cell.occupant != null or not cell.kind.can_hold_tile():
 		return []
 	var color := board.rng.randi_range(0, board.color_count - 1)
-	var is_bomb := board.bomb_spawn_chance > 0.0 and board.rng.randf() < board.bomb_spawn_chance
-	cell.occupant = Tile.make_bomb() if is_bomb else Tile.make_normal(color)
+	if board.bomb_spawn_chance > 0.0 and board.rng.randf() < board.bomb_spawn_chance:
+		cell.occupant = Tile.make_bomb()
+	elif board.color_bomb_spawn_chance > 0.0 and board.rng.randf() < board.color_bomb_spawn_chance:
+		cell.occupant = Tile.make_color_bomb(color)
+	else:
+		cell.occupant = Tile.make_normal(color)
 	return []
