@@ -14,6 +14,7 @@ static func generate(params: WorldGenParams) -> BoardGraph:
 
 	var graph := BoardGraph.new(params.width, params.height)
 	graph.color_count = params.color_count
+	graph.arrow_blaster_spawn_chance = params.arrow_blaster_spawn_chance
 	graph.bomb_spawn_chance = params.bomb_spawn_chance
 	graph.color_bomb_spawn_chance = params.color_bomb_spawn_chance
 	graph.rng = rng

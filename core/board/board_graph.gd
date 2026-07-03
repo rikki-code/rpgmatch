@@ -8,6 +8,7 @@ extends RefCounted
 var width: int
 var height: int
 var color_count: int = 5
+var arrow_blaster_spawn_chance: float = 0.00
 var bomb_spawn_chance: float = 0.0
 var color_bomb_spawn_chance: float = 0.0
 var swapped_tiles: Array[Tile] = []
