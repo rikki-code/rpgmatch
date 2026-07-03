@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3]
 
-[ext_resource type="Material" path="res://view/entity_views/cell_ground_base_material.tres" id="1"]
-[ext_resource type="Material" path="res://view/entity_views/cell_ground_top_material.tres" id="2"]
+[ext_resource type="Material" path="res://view/packs/board_pack/earth_pack/cell_ground_base_material.tres" id="1"]
+[ext_resource type="Material" path="res://view/packs/board_pack/earth_pack/cell_ground_top_material.tres" id="2"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_base"]
 size = Vector3(0.94, 0.14, 0.94)

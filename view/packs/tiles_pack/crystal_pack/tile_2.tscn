@@ -1,11 +1,11 @@
 [gd_scene format=3 uid="uid://3iayli1vnhn7"]
 
-[ext_resource type="Material" path="res://view/entity_views/tile_crystal_material.tres" id="1"]
+[ext_resource type="Material" path="res://view/packs/tiles_pack/crystal_pack/tile_material.tres" id="1"]
 
 [sub_resource type="CylinderMesh" id="CylinderMesh_1"]
-top_radius = 0.01
-bottom_radius = 0.38
-height = 0.65
+top_radius = 0.1
+bottom_radius = 0.36
+height = 0.5
 radial_segments = 4
 
 [node name="TileCrystal2" type="Node3D" unique_id=894448182]

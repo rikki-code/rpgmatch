@@ -10,15 +10,21 @@ extends Node3D
 
 signal settled
 
-const CELL_SIZE := 1.0
+const CELL_SIZE := GeometryConstants.CELL_SIZE
 const TILE_LIFT := 0.35
-const EXPLOSION_SCENE := preload("res://view/effects/tile_explosion.tscn")
-const LIGHTNING_SCENE := preload("res://view/effects/match_lightning.tscn")
 
-const CELL_SCENES_BY_VISUAL_KIND := {
-	&"pit": preload("res://view/entity_views/cell_pit.tscn"),
-}
-const DEFAULT_CELL_SCENE := preload("res://view/entity_views/cell_ground.tscn")
+static var EXPLOSION_SCENE: PackedScene
+static var LIGHTNING_SCENE: PackedScene
+static var CELL_SCENES_BY_VISUAL_KIND: Dictionary
+static var DEFAULT_CELL_SCENE: PackedScene
+
+static func _static_init() -> void:
+	EXPLOSION_SCENE = load(PackPaths.SPECIAL_TILES_PACK + "tile_explosion.tscn")
+	LIGHTNING_SCENE = load(PackPaths.TILES_PACK + "match_lightning.tscn")
+	DEFAULT_CELL_SCENE = load(PackPaths.BOARD_PACK + "cell_ground.tscn")
+	CELL_SCENES_BY_VISUAL_KIND = {
+		&"pit": load(PackPaths.BOARD_PACK + "cell_pit.tscn"),
+	}
 
 var board: BoardGraph
 ## Tiles InputController is manually positioning (the dragged tile and, for

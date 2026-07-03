@@ -3,24 +3,32 @@ class_name TileView
 extends EntityView
 
 ## Mesh/material live in these scenes, edited in the editor. Keyed by
-## Tile.visual_kind(); no entry falls back to CRYSTAL_SCENES_BY_COLOR.
-const SCENES_BY_VISUAL_KIND := {
-	&"bomb": preload("res://view/entity_views/tile_bomb.tscn"),
-}
+## Tile.visual_kind(); no entry falls back to TILE_SCENES_BY_COLOR.
+static var SCENES_BY_VISUAL_KIND: Dictionary
 ## Plain color tile picks shape by Tile.color, unrelated to visual_kind().
-const CRYSTAL_SCENES_BY_COLOR: Array[PackedScene] = [
-	preload("res://view/entity_views/tile_crystal_0.tscn"),
-	preload("res://view/entity_views/tile_crystal_1.tscn"),
-	preload("res://view/entity_views/tile_crystal_2.tscn"),
-	preload("res://view/entity_views/tile_crystal_3.tscn"),
-	preload("res://view/entity_views/tile_crystal_4.tscn"),
-	preload("res://view/entity_views/tile_crystal_5.tscn"),
-]
+static var TILE_SCENES_BY_COLOR: Array[PackedScene]
+## Loaded from the pack's tile_colors.tres — see TileColorPalette.
+static var TILE_COLORS: Array[Color]
 
-const CELL_SIZE := 1.0
+static func _static_init() -> void:
+	SCENES_BY_VISUAL_KIND = {
+		&"bomb": load(PackPaths.SPECIAL_TILES_PACK + "tile_bomb.tscn"),
+	}
+	TILE_SCENES_BY_COLOR = [
+		load(PackPaths.TILES_PACK + "tile_0.tscn"),
+		load(PackPaths.TILES_PACK + "tile_1.tscn"),
+		load(PackPaths.TILES_PACK + "tile_2.tscn"),
+		load(PackPaths.TILES_PACK + "tile_3.tscn"),
+		load(PackPaths.TILES_PACK + "tile_4.tscn"),
+		load(PackPaths.TILES_PACK + "tile_5.tscn"),
+	]
+	var palette: TileColorPalette = load(PackPaths.TILES_PACK + "tile_colors.tres")
+	TILE_COLORS = palette.colors
+
+const CELL_SIZE := GeometryConstants.CELL_SIZE
 ## Safe general radius for InputController's drag clamp — crystal shapes vary a bit.
-const RADIUS := CELL_SIZE * 0.36
-## Must match tile_crystal_material.tres's emission_energy_multiplier.
+const RADIUS := GeometryConstants.DEFAULT_TILE_RADIUS
+## Must match tile_material.tres's emission_energy_multiplier.
 const BASE_EMISSION_ENERGY := 0.9
 const HIGHLIGHT_EMISSION_ENERGY := 3.2
 ## Same pace for short settles and long spawn-falls, or the cascade looks disjointed.
@@ -29,22 +37,18 @@ const DESTROY_TIME := 0.52
 ## Fuse-catch beat before a bomb's node shrinks away.
 const IGNITE_TIME := 0.15
 
-var tile_colors: Array[Color] = [
-	Color.SEA_GREEN, Color.ROYAL_BLUE, Color.MEDIUM_PURPLE, Color.GOLDENROD, Color.CRIMSON, Color.ORANGE_RED
-]
-
 func build_node(entity: BoardEntity) -> Node3D:
 	var tile: Tile = entity
 	var visual_kind := tile.visual_kind()
 	var scene: PackedScene = SCENES_BY_VISUAL_KIND.get(visual_kind)
 	if scene == null:
-		scene = CRYSTAL_SCENES_BY_COLOR[tile.color % CRYSTAL_SCENES_BY_COLOR.size()]
+		scene = TILE_SCENES_BY_COLOR[tile.color % TILE_SCENES_BY_COLOR.size()]
 	var node: Node3D = scene.instantiate()
 	var mesh: MeshInstance3D = node.get_node("Mesh")
 	# Duplicate so each tile gets its own color without repainting every
 	# other tile sharing the same .tres material resource.
 	var material: StandardMaterial3D = mesh.get_surface_override_material(0).duplicate()
-	var color: Color = tile.visual_color if tile.visual_color != null else tile_colors[tile.color % tile_colors.size()]
+	var color: Color = tile.visual_color if tile.visual_color != null else TILE_COLORS[tile.color % TILE_COLORS.size()]
 	material.albedo_color = Color(color.r, color.g, color.b, material.albedo_color.a)
 	if material.emission_enabled:
 		material.emission = color

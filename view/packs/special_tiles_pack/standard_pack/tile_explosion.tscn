@@ -1,9 +1,9 @@
 [gd_scene load_steps=8 format=3]
 
-[ext_resource type="Script" path="res://view/effects/tile_explosion.gd" id="1"]
-[ext_resource type="Material" path="res://view/effects/tile_explosion_material.tres" id="2"]
-[ext_resource type="Material" path="res://view/effects/tile_explosion_spark_material.tres" id="3"]
-[ext_resource type="Material" path="res://view/effects/tile_explosion_shockwave_material.tres" id="4"]
+[ext_resource type="Script" path="res://view/packs/special_tiles_pack/standard_pack/tile_explosion.gd" id="1"]
+[ext_resource type="Material" path="res://view/packs/special_tiles_pack/standard_pack/tile_explosion_material.tres" id="2"]
+[ext_resource type="Material" path="res://view/packs/special_tiles_pack/standard_pack/tile_explosion_spark_material.tres" id="3"]
+[ext_resource type="Material" path="res://view/packs/special_tiles_pack/standard_pack/tile_explosion_shockwave_material.tres" id="4"]
 
 [sub_resource type="SphereMesh" id="SphereMesh_1"]
 radius = 0.5

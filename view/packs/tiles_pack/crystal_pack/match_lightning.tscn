@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3]
 
-[ext_resource type="Script" path="res://view/effects/match_lightning.gd" id="1"]
-[ext_resource type="Material" path="res://view/effects/match_lightning_material.tres" id="2"]
+[ext_resource type="Script" path="res://view/packs/tiles_pack/crystal_pack/match_lightning.gd" id="1"]
+[ext_resource type="Material" path="res://view/packs/tiles_pack/crystal_pack/match_lightning_material.tres" id="2"]
 
 [sub_resource type="CylinderMesh" id="CylinderMesh_bolt"]
 top_radius = 0.035

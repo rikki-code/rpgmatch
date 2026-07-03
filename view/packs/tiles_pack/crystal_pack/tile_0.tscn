@@ -1,0 +1,15 @@
+[gd_scene format=3 uid="uid://de62vllypj7ue"]
+
+[ext_resource type="Material" path="res://view/packs/tiles_pack/crystal_pack/tile_material.tres" id="1"]
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_1"]
+top_radius = 0.1
+bottom_radius = 0.3
+height = 0.5
+radial_segments = 6
+
+[node name="TileCrystal0" type="Node3D" unique_id=1053146461]
+
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=723192090]
+mesh = SubResource("CylinderMesh_1")
+surface_material_override/0 = ExtResource("1")
