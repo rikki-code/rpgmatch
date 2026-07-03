@@ -15,12 +15,14 @@ const TILE_LIFT := 0.35
 
 static var EXPLOSION_SCENE: PackedScene
 static var LIGHTNING_SCENE: PackedScene
+static var ARROW_BOLT_SCENE: PackedScene
 static var CELL_SCENES_BY_VISUAL_KIND: Dictionary
 static var DEFAULT_CELL_SCENE: PackedScene
 
 static func _static_init() -> void:
 	EXPLOSION_SCENE = load(PackPaths.SPECIAL_TILES_PACK + "tile_explosion.tscn")
 	LIGHTNING_SCENE = load(PackPaths.TILES_PACK + "match_lightning.tscn")
+	ARROW_BOLT_SCENE = load(PackPaths.SPECIAL_TILES_PACK + "arrow_blast_bolt.tscn")
 	DEFAULT_CELL_SCENE = load(PackPaths.BOARD_PACK + "cell_ground.tscn")
 	CELL_SCENES_BY_VISUAL_KIND = {
 		&"pit": load(PackPaths.BOARD_PACK + "cell_pit.tscn"),
@@ -134,8 +136,12 @@ func refresh(effect: Effect = null) -> void:
 		_pending_spawn_distance[effect.cell] = {"fall": effect.fall_distance, "reveal": effect.reveal_distance}
 	if effect is EffectSpawnBombTile:
 		_pending_spawn_distance[effect.cell] = {"fall": effect.fall_distance, "reveal": effect.reveal_distance}
+	if effect is EffectSpawnArrowBlasterTile:
+		_pending_spawn_distance[effect.cell] = {"fall": effect.fall_distance, "reveal": effect.reveal_distance}
 	if effect is EffectBombBlast:
 		_play_delayed_explosion(effect.cells)
+	if effect is EffectArrowBlast:
+		_play_arrow_blast(effect)
 	if effect is EffectMatchLightning:
 		_play_lightning(effect.cells)
 
@@ -186,6 +192,33 @@ func _play_explosion(cell_position: Vector2i) -> void:
 	add_child(node)
 	node.position = cell_to_world(cell_position) + Vector3.UP * TILE_LIFT
 	node.play()
+
+## Same per-cell flash as a bomb blast, plus a pair of energy bolts shot from
+## origin toward both ends of the row/column.
+func _play_arrow_blast(effect: EffectArrowBlast) -> void:
+	_play_delayed_explosion(effect.cells)
+	if effect.cells.is_empty():
+		return
+	await get_tree().create_timer(TileView.IGNITE_TIME).timeout
+	var varies_x := effect.axis == ArrowBlasterCore.Axis.ROW
+	var min_pos := effect.origin.position
+	var max_pos := effect.origin.position
+	for cell: GridCell in effect.cells:
+		var coord := cell.position.x if varies_x else cell.position.y
+		var min_coord := min_pos.x if varies_x else min_pos.y
+		var max_coord := max_pos.x if varies_x else max_pos.y
+		if coord < min_coord:
+			min_pos = cell.position
+		if coord > max_coord:
+			max_pos = cell.position
+	var origin_world := lifted_world(effect.origin.position)
+	_spawn_arrow_bolt(origin_world, lifted_world(min_pos))
+	_spawn_arrow_bolt(origin_world, lifted_world(max_pos))
+
+func _spawn_arrow_bolt(from: Vector3, to: Vector3) -> void:
+	var node: ArrowBlastBolt = ARROW_BOLT_SCENE.instantiate()
+	add_child(node)
+	node.play(from, to)
 
 ## RIGHT/DOWN only so each adjacent pair draws once, not twice.
 func _play_lightning(cells: Array) -> void:

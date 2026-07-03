@@ -81,3 +81,23 @@ func cells_within_square_radius(origin: GridCell, radius: int, include_origin: b
 			if target != null:
 				result.append(target)
 	return result
+
+func cells_within_row_band(origin: GridCell, extra_rows: int) -> Array[GridCell]:
+	var result: Array[GridCell] = []
+	for dy in range(-extra_rows, extra_rows + 1):
+		var y := origin.position.y + dy
+		for x in range(width):
+			var target := get_cell(Vector2i(x, y))
+			if target != null:
+				result.append(target)
+	return result
+
+func cells_within_column_band(origin: GridCell, extra_columns: int) -> Array[GridCell]:
+	var result: Array[GridCell] = []
+	for dx in range(-extra_columns, extra_columns + 1):
+		var x := origin.position.x + dx
+		for y in range(height):
+			var target := get_cell(Vector2i(x, y))
+			if target != null:
+				result.append(target)
+	return result

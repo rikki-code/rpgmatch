@@ -29,7 +29,7 @@ static func make_color_bomb(p_color: int, radius: int = 1) -> Tile:
 	var core := BombCore.new(radius, BombCore.Shape.MANHATTAN)
 	tile.behaviors.append(ColorBehavior.new())
 	tile.behaviors.append(core)
-	tile.behaviors.append(BombMatchBehavior.new(core))
+	tile.behaviors.append(MatchTriggerBehavior.new(core))
 	return tile
 
 static func make_bomb(radius: int = 1) -> Tile:
@@ -38,8 +38,17 @@ static func make_bomb(radius: int = 1) -> Tile:
 	tile.visual_color = Color.BLACK
 	var core := BombCore.new(radius, BombCore.Shape.SQUARE)
 	tile.behaviors.append(core)
-	tile.behaviors.append(BombManualTriggerBehavior.new(core))
-	tile.behaviors.append(BombSwapSplashBehavior.new(core))
+	tile.behaviors.append(ManualTriggerBehavior.new(core))
+	tile.behaviors.append(SwapSplashTriggerBehavior.new(core))
+	return tile
+
+static func make_arrow_blaster(axis: ArrowBlasterCore.Axis, extra_lines: int = 0) -> Tile:
+	var tile := Tile.new()
+	tile.color = -1
+	var core := ArrowBlasterCore.new(axis, extra_lines)
+	tile.behaviors.append(core)
+	tile.behaviors.append(ManualTriggerBehavior.new(core))
+	tile.behaviors.append(SwapSplashTriggerBehavior.new(core))
 	return tile
 
 func display_name() -> String:

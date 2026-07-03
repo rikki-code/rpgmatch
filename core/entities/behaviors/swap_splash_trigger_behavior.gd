@@ -1,17 +1,17 @@
-## Explodes from an ordinary tile's on-destroy splash (see
+## Detonates a bonus tile from an ordinary tile's on-destroy splash (see
 ## SplashDamageBehavior, EffectSplashDamage/on_splash_damage) — but only if
-## this bomb itself was one of the two tiles just swapped into the match
+## this tile itself was one of the two tiles just swapped into the match
 ## that caused that splash (BoardGraph.swapped_tiles, reset each turn by
 ## PhasePlayerInput.enter). An unrelated match happening to sit next to an
-## otherwise-untouched bomb must not set it off — that's what the gate is
-## for. Contrast with BombCore.on_damage, which reacts unconditionally to a
-## direct explosion hit.
-class_name BombSwapSplashBehavior
+## otherwise-untouched bonus tile must not set it off — that's what the gate
+## is for. Contrast with TriggerCore.on_damage, which reacts unconditionally
+## to a direct explosion hit.
+class_name SwapSplashTriggerBehavior
 extends TileBehavior
 
-var core: BombCore
+var core: TriggerCore
 
-func _init(p_core: BombCore) -> void:
+func _init(p_core: TriggerCore) -> void:
 	core = p_core
 
 func on_splash_damage(self_tile: Tile, _amount: int, cell: GridCell, board: BoardGraph) -> Array[Effect]:

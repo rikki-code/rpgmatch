@@ -13,6 +13,8 @@ static var TILE_COLORS: Array[Color]
 static func _static_init() -> void:
 	SCENES_BY_VISUAL_KIND = {
 		&"bomb": load(PackPaths.SPECIAL_TILES_PACK + "tile_bomb.tscn"),
+		&"arrow_blaster_row": load(PackPaths.SPECIAL_TILES_PACK + "tile_arrow_blaster.tscn"),
+		&"arrow_blaster_column": load(PackPaths.SPECIAL_TILES_PACK + "tile_arrow_blaster.tscn"),
 	}
 	TILE_SCENES_BY_COLOR = [
 		load(PackPaths.TILES_PACK + "tile_0.tscn"),
@@ -44,11 +46,22 @@ func build_node(entity: BoardEntity) -> Node3D:
 	if scene == null:
 		scene = TILE_SCENES_BY_COLOR[tile.color % TILE_SCENES_BY_COLOR.size()]
 	var node: Node3D = scene.instantiate()
+
+	# Row/column arrow blasters share one asset; column just turns it 90°
+	# to point across the other axis (see ArrowBlasterCore.Axis).
+	if visual_kind == &"arrow_blaster_column":
+		node.rotate_y(PI / 2.0)
+
+	var color: Variant = tile.visual_color
+	if color == null and tile.color >= 0:
+		color = TILE_COLORS[tile.color % TILE_COLORS.size()]
+	if color == null:
+		return node
+
 	var mesh: MeshInstance3D = node.get_node("Mesh")
 	# Duplicate so each tile gets its own color without repainting every
 	# other tile sharing the same .tres material resource.
 	var material: StandardMaterial3D = mesh.get_surface_override_material(0).duplicate()
-	var color: Color = tile.visual_color if tile.visual_color != null else TILE_COLORS[tile.color % TILE_COLORS.size()]
 	material.albedo_color = Color(color.r, color.g, color.b, material.albedo_color.a)
 	if material.emission_enabled:
 		material.emission = color

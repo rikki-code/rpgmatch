@@ -4,7 +4,7 @@
 ## on_damage/on_splash_damage — see TileBehavior.manual_trigger) so this
 ## always works regardless of whatever conditions gate those (e.g. a bomb's
 ## splash-triggered explosion requires it was just swapped into a match —
-## see BombSwapSplashBehavior); nothing here knows what a bomb is.
+## see SwapSplashTriggerBehavior); nothing here knows what a bomb is.
 class_name DetonateController
 extends RefCounted
 
