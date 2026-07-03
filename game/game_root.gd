@@ -35,6 +35,7 @@ func _ready() -> void:
 	ctx.resolver.effect_applied.connect(func(effect: Effect) -> void: board_view.refresh(effect))
 	swap_controller.swap_applied.connect(func(_a: GridCell, _b: GridCell) -> void: board_view.refresh())
 	swap_controller.swap_rejected.connect(func(_a: GridCell, _b: GridCell) -> void: board_view.refresh())
+	swap_controller.tiles_combined.connect(func(_a: GridCell, _b: GridCell) -> void: board_view.refresh())
 	detonate_controller.detonated.connect(func(_cell: GridCell) -> void: board_view.refresh())
 
 	var camera: Camera3D = $Camera3D

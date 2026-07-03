@@ -29,3 +29,6 @@ func trigger(self_tile: Tile, cell: GridCell, board: BoardGraph) -> Array[Effect
 
 func _do_trigger(_self_tile: Tile, _cell: GridCell, _board: BoardGraph) -> Array[Effect]:
 	return []
+
+func _do_combine_with(_other: TriggerCore) -> Tile:
+	return null

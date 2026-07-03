@@ -26,3 +26,10 @@ func _do_trigger(_self_tile: Tile, cell: GridCell, board: BoardGraph) -> Array[E
 		return [EffectBombBlast.new(cell, board.cells_within_manhattan_radius(cell, radius))]
 	else:
 		return [EffectBombBlast.new(cell, board.cells_within_square_radius(cell, radius))]
+
+func _do_combine_with(other: TriggerCore) -> Tile:
+	if other is BombCore:
+		return Tile.make_bomb(radius + other.radius)
+	if other is ArrowBlasterCore:
+		return Tile.make_arrow_blaster(other.axis, radius + other.extra_lines)
+	return null

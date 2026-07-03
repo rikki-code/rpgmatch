@@ -1,30 +1,29 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene format=3 uid="uid://hary07s11p4c"]
 
-[ext_resource type="Script" path="res://game/game_root.gd" id="1"]
-[ext_resource type="Script" path="res://view/board_view_3d.gd" id="2"]
-[ext_resource type="Script" path="res://view/input_controller.gd" id="3"]
+[ext_resource type="Script" uid="uid://c2yjao8nqgjkb" path="res://game/game_root.gd" id="1"]
+[ext_resource type="Script" uid="uid://st2iu2oucth4" path="res://view/board_view_3d.gd" id="2"]
+[ext_resource type="Script" uid="uid://bqdp5710mk1l6" path="res://view/input_controller.gd" id="3"]
 [ext_resource type="Environment" path="res://view/packs/background_pack/standard_pack/board_environment.tres" id="4"]
 
-[node name="GameRoot" type="Node3D"]
+[node name="GameRoot" type="Node3D" unique_id=1180910243]
 script = ExtResource("1")
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=944744596]
 environment = ExtResource("4")
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
-rotation_degrees = Vector3(-55, -25, 0)
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=155002895]
+transform = Transform3D(0.90630776, 0.34618863, -0.24240388, 0, 0.57357645, 0.81915206, 0.42261827, -0.74240386, 0.5198368, 0, 0, 0)
 light_energy = 1.1
 shadow_enabled = true
 
-[node name="BoardView3D" type="Node3D" parent="."]
+[node name="BoardView3D" type="Node3D" parent="." unique_id=999349404]
 script = ExtResource("2")
 
-[node name="InputController" type="Node3D" parent="."]
+[node name="InputController" type="Node3D" parent="." unique_id=863571155]
 script = ExtResource("3")
 
-[node name="Camera3D" type="Camera3D" parent="."]
-position = Vector3(3.5, 15, 2.2)
-rotation_degrees = Vector3(-85, 0, 0)
+[node name="Camera3D" type="Camera3D" parent="." unique_id=663818620]
+transform = Transform3D(1, 0, 0, 0, 0.087155804, 0.9961947, 0, -0.9961947, 0.087155804, 3.5, 15, 2.2)
 projection = 1
-size = 12.0
 current = true
+size = 12.0

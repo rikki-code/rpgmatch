@@ -40,6 +40,7 @@ static func make_bomb(radius: int = 1) -> Tile:
 	tile.behaviors.append(core)
 	tile.behaviors.append(ManualTriggerBehavior.new(core))
 	tile.behaviors.append(SwapSplashTriggerBehavior.new(core))
+	tile.behaviors.append(CombineEffectsBehavior.new(core))
 	return tile
 
 static func make_arrow_blaster(axis: ArrowBlasterCore.Axis, extra_lines: int = 0) -> Tile:
@@ -49,6 +50,7 @@ static func make_arrow_blaster(axis: ArrowBlasterCore.Axis, extra_lines: int = 0
 	tile.behaviors.append(core)
 	tile.behaviors.append(ManualTriggerBehavior.new(core))
 	tile.behaviors.append(SwapSplashTriggerBehavior.new(core))
+	tile.behaviors.append(CombineEffectsBehavior.new(core))
 	return tile
 
 func display_name() -> String:
@@ -61,6 +63,18 @@ func can_match_with(other: BoardEntity) -> bool:
 		if behavior.can_match_with(self, other):
 			return true
 	return false
+
+func can_combine_with(other: Tile) -> bool:
+	for behavior in behaviors:
+		if behavior.can_combine_with(self, other):
+			return true
+	return false
+
+func combine_with(other: Tile, cell: GridCell, board: BoardGraph) -> Array[Effect]:
+	var effects: Array[Effect] = []
+	for behavior in behaviors:
+		effects.append_array(behavior.combine_with(self, other, cell, board))
+	return effects
 
 func blocks_swap() -> bool:
 	for behavior in behaviors:

@@ -107,10 +107,18 @@ func _update_drag(screen_pos: Vector2) -> void:
 	var drag_target := board_view.lifted_world(_drag_cell.position) + Vector3.UP * DRAG_LIFT_BONUS + free_offset
 	_drive(_drag_tile, drag_target, DRAG_FOLLOW_TIME)
 
-	if _companion_tile != null:
+	# A combine (see CombineEffectsBehavior) doesn't move either tile onto the
+	# other's cell — it's a merge, not a swap — so the companion must not
+	# slide out of the way like it would for an ordinary match-swap preview.
+	if _companion_tile != null and not _is_combine_candidate():
 		var offset_vec := Vector3(offset, 0.0, 0.0) if horizontal else Vector3(0.0, 0.0, offset)
 		var companion_target := board_view.lifted_world(_companion_cell.position) - offset_vec
 		_drive(_companion_tile, companion_target, DRAG_FOLLOW_TIME)
+
+func _is_combine_candidate() -> bool:
+	if _drag_tile == null or _companion_tile == null:
+		return false
+	return _drag_tile.can_combine_with(_companion_tile) and _companion_tile.can_combine_with(_drag_tile)
 
 ## Keeps board_view's "held" set in sync with whichever cell is currently
 ## the drag target, so the tile living there previews sliding out of the
@@ -126,11 +134,14 @@ func _update_companion(neighbor: GridCell) -> void:
 	_companion_cell = neighbor
 	if _companion_tile != null:
 		board_view.hold(_companion_tile)
-	_update_match_preview()
+	_update_preview()
 
-func _update_match_preview() -> void:
+func _update_preview() -> void:
 	if _companion_cell == null:
 		board_view.set_match_preview([])
+		return
+	if _is_combine_candidate():
+		board_view.set_match_preview([_drag_tile, _companion_tile])
 		return
 	board_view.set_match_preview(swap_controller.preview_match(_drag_cell, _companion_cell))
 

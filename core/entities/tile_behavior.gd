@@ -8,6 +8,14 @@ extends RefCounted
 func can_match_with(_self_tile: Tile, _other_tile: Tile) -> bool:
 	return false
 
+## Whether swapping self onto other_tile's cell should merge them into one
+## boosted bonus tile instead of an ordinary color-match swap.
+func can_combine_with(_self_tile: Tile, _other_tile: Tile) -> bool:
+	return false
+
+func combine_with(_self_tile: Tile, _other_tile: Tile, _cell: GridCell, _board: BoardGraph) -> Array[Effect]:
+	return []
+
 func on_matched(_self_tile: Tile, _cell: GridCell, _board: BoardGraph) -> Array[Effect]:
 	return []
 
