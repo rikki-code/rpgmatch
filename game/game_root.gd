@@ -45,6 +45,22 @@ func _ready() -> void:
 	var input_controller: InputController = $InputController
 	input_controller.setup(camera, board_view, board, swap_controller, detonate_controller)
 
+	var editor_mode_controller: EditorModeController = $EditorModeController
+	editor_mode_controller.setup(camera, board_view, ctx)
+	var editor_grid_overlay: EditorGridOverlay = $EditorGridOverlay
+	editor_grid_overlay.setup(board)
+	var editor_toolbar: EditorToolbar = $UILayer/EditorToolbar
+	editor_toolbar.setup(editor_mode_controller.cell_catalog, editor_mode_controller.tile_catalog)
+
+	editor_mode_controller.mode_changed.connect(func(active: bool) -> void:
+		input_controller.set_editor_active(active)
+		editor_grid_overlay.set_active(active)
+		editor_toolbar.set_panel_visible(active)
+	)
+	editor_toolbar.cell_kind_selected.connect(editor_mode_controller.select_cell_kind)
+	editor_toolbar.remove_cell_selected.connect(editor_mode_controller.select_remove_cell)
+	editor_toolbar.tile_selected.connect(editor_mode_controller.select_tile)
+
 	turn_manager.start()
 
 const CAMERA_HEIGHT := 15.0

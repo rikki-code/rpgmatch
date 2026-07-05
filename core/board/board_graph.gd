@@ -30,14 +30,22 @@ func all_cells() -> Array:
 
 ## Wires the default rectangular 4-neighbor grid. Call again (or rewrite
 ## individual `GridCell.neighbors` entries) to build non-rectangular or
-## dynamically reconnected topologies later.
+## dynamically reconnected topologies later. Unconditional assignment (even
+## to null) matters once cells can be removed at runtime (see remove_cell) —
+## otherwise a neighbor's link to a just-removed cell would stay dangling.
 func link_grid_neighbors() -> void:
 	for cell: GridCell in cells.values():
 		for dir in GridDirection.ALL:
 			var offset: Vector2i = GridDirection.OFFSETS[dir]
-			var neighbor_cell := get_cell(cell.position + offset)
-			if neighbor_cell != null:
-				cell.neighbors[dir] = neighbor_cell
+			cell.neighbors[dir] = get_cell(cell.position + offset)
+
+## Removes a cell entirely — a true gap in the graph, same as the board's
+## own edge, not a pit (see PitCellKind). Takes its occupant with it; re-add
+## via add_cell() to restore. Relinks so neighbors pointing here clear their
+## stale reference instead of walking into a freed GridCell.
+func remove_cell(pos: Vector2i) -> void:
+	cells.erase(pos)
+	link_grid_neighbors()
 
 ## Top-to-bottom, keeping a `null` entry for any (x, y) with no cell at all
 ## (the board doesn't have to be rectangular) — gravity treats a gap the

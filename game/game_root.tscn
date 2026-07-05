@@ -4,6 +4,9 @@
 [ext_resource type="Script" uid="uid://st2iu2oucth4" path="res://view/board_view_3d.gd" id="2"]
 [ext_resource type="Script" uid="uid://bqdp5710mk1l6" path="res://view/input_controller.gd" id="3"]
 [ext_resource type="Environment" path="res://view/packs/background_pack/standard_pack/board_environment.tres" id="4"]
+[ext_resource type="Script" path="res://view/editor/editor_mode_controller.gd" id="5"]
+[ext_resource type="Script" path="res://view/editor/editor_grid_overlay.gd" id="6"]
+[ext_resource type="PackedScene" path="res://view/editor/editor_toolbar.tscn" id="7"]
 
 [node name="GameRoot" type="Node3D" unique_id=1180910243]
 script = ExtResource("1")
@@ -22,8 +25,18 @@ script = ExtResource("2")
 [node name="InputController" type="Node3D" parent="." unique_id=863571155]
 script = ExtResource("3")
 
+[node name="EditorModeController" type="Node3D" parent="."]
+script = ExtResource("5")
+
+[node name="EditorGridOverlay" type="Node3D" parent="."]
+script = ExtResource("6")
+
 [node name="Camera3D" type="Camera3D" parent="." unique_id=663818620]
 transform = Transform3D(1, 0, 0, 0, 0.087155804, 0.9961947, 0, -0.9961947, 0.087155804, 3.5, 15, 2.2)
 projection = 1
 current = true
 size = 12.0
+
+[node name="UILayer" type="CanvasLayer" parent="."]
+
+[node name="EditorToolbar" parent="UILayer" instance=ExtResource("7")]

@@ -35,6 +35,8 @@ var board: BoardGraph
 var held_tiles: Dictionary = {}  # Tile -> true
 
 var _tile_nodes: Dictionary = {}  # BoardEntity -> Node3D
+var _cell_nodes: Dictionary = {}  # Vector2i -> Node3D
+var _cell_visual_kind: Dictionary = {}  # Vector2i -> StringName
 var _entity_views: Dictionary = {}  # Script -> EntityView
 var _entity_tweens: Dictionary = {}  # BoardEntity -> Tween (latest tween driving it)
 ## Set by refresh() right before it processes an EffectSpawnTile, consumed
@@ -88,6 +90,16 @@ func cell_to_world(pos: Vector2i) -> Vector3:
 func world_to_cell(world_pos: Vector3) -> Vector2i:
 	return Vector2i(roundi(world_pos.x / CELL_SIZE), roundi(world_pos.z / CELL_SIZE))
 
+## Shared by InputController and EditorModeController: where a screen point
+## hits the board's ground plane (y=0), so both convert clicks to cells the
+## same way instead of each keeping its own copy of this math.
+static func ground_plane_point(camera: Camera3D, screen_pos: Vector2) -> Vector3:
+	var from := camera.project_ray_origin(screen_pos)
+	var dir := camera.project_ray_normal(screen_pos)
+	var denom := dir.y if absf(dir.y) > 0.0001 else 0.0001
+	var t := -from.y / denom
+	return from + dir * t
+
 func lifted_world(pos: Vector2i) -> Vector3:
 	return cell_to_world(pos) + Vector3.UP * TILE_LIFT
 
@@ -131,7 +143,10 @@ func _set_entity_highlighted(entity: BoardEntity, on: bool) -> void:
 ## `effect` is the Effect that was just applied (see game_root's
 ## effect_applied connection). refresh() only reads it to pick up a spawn's
 ## fall_distance hint — everything else still comes purely from board state.
-func refresh(effect: Effect = null) -> void:
+## `instant` skips fall/shrink tweening entirely (snap to final state) — the
+## world editor uses this so placing/erasing a tile reads as direct
+## authoring, not a gameplay reveal (see EditorModeController).
+func refresh(effect: Effect = null, instant: bool = false) -> void:
 	if effect is EffectSpawnTile and effect.fall_distance > 0:
 		_pending_spawn_distance[effect.cell] = {"fall": effect.fall_distance, "reveal": effect.reveal_distance}
 	if effect is EffectSpawnBombTile:
@@ -152,7 +167,11 @@ func refresh(effect: Effect = null) -> void:
 
 	for entity in _tile_nodes.keys().duplicate():
 		if not live_entities.has(entity):
-			_play_destroy(entity)
+			if instant:
+				_tile_nodes[entity].queue_free()
+				_tile_nodes.erase(entity)
+			else:
+				_play_destroy(entity)
 
 	for entity: BoardEntity in live_entities.keys():
 		var view: EntityView = _view_for(entity)
@@ -165,6 +184,9 @@ func refresh(effect: Effect = null) -> void:
 			node = view.build_node(entity)
 			add_child(node)
 			_tile_nodes[entity] = node
+			if instant:
+				node.position = target
+				continue
 			# The effect tells us exactly how far above its target this tile
 			# needs to start (and, separately, how close it must get before
 			# it should actually be shown) to land in step with whatever
@@ -178,6 +200,8 @@ func refresh(effect: Effect = null) -> void:
 			var start := cell_to_world(cell.position - Vector2i(0, info.fall)) + Vector3.UP * TILE_LIFT
 			var reveal := cell_to_world(cell.position - Vector2i(0, info.reveal)) + Vector3.UP * TILE_LIFT
 			_track_tween(entity, view.play_spawn(node, start, reveal, target, self))
+		elif instant:
+			node.position = target
 		elif not held_tiles.has(entity):
 			_track_tween(entity, view.play_move(node, target, self))
 
@@ -266,7 +290,32 @@ func _on_tween_finished(entity: BoardEntity, tween: Tween) -> void:
 
 func _build_cells() -> void:
 	for cell: GridCell in board.all_cells():
-		var scene: PackedScene = CELL_SCENES_BY_VISUAL_KIND.get(cell.kind.visual_kind(), DEFAULT_CELL_SCENE)
-		var node: Node3D = scene.instantiate()
-		node.position = cell_to_world(cell.position)
-		add_child(node)
+		_add_cell_node(cell)
+
+func _add_cell_node(cell: GridCell) -> void:
+	var scene: PackedScene = CELL_SCENES_BY_VISUAL_KIND.get(cell.kind.visual_kind(), DEFAULT_CELL_SCENE)
+	var node: Node3D = scene.instantiate()
+	node.position = cell_to_world(cell.position)
+	add_child(node)
+	_cell_nodes[cell.position] = node
+	_cell_visual_kind[cell.position] = cell.kind.visual_kind()
+
+## Diffs cell nodes against current board topology, and re-kind in place
+## (the world editor can change an existing cell's kind, e.g. normal -> pit,
+## without removing/re-adding the GridCell — see BoardEditController.set_cell_kind).
+## Unlike normal play (where the grid is fixed after setup()), the editor
+## changes this at runtime, so this needs to run again after each such edit.
+func sync_cells() -> void:
+	var live_positions: Dictionary = {}  # Vector2i -> true
+	for cell: GridCell in board.all_cells():
+		live_positions[cell.position] = true
+		if not _cell_nodes.has(cell.position):
+			_add_cell_node(cell)
+		elif _cell_visual_kind.get(cell.position) != cell.kind.visual_kind():
+			_cell_nodes[cell.position].queue_free()
+			_add_cell_node(cell)
+	for pos: Vector2i in _cell_nodes.keys().duplicate():
+		if not live_positions.has(pos):
+			_cell_nodes[pos].queue_free()
+			_cell_nodes.erase(pos)
+			_cell_visual_kind.erase(pos)

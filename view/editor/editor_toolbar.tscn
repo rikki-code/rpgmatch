@@ -1,0 +1,87 @@
+[gd_scene load_steps=2 format=3 uid="uid://dqxk1w2h5m8bn"]
+
+[ext_resource type="Script" path="res://view/editor/editor_toolbar.gd" id="1"]
+
+[node name="EditorToolbar" type="Control"]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -90.0
+offset_left = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+script = ExtResource("1")
+
+[node name="Panel" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Background" type="ColorRect" parent="Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.08, 0.08, 0.1, 0.85)
+mouse_filter = 2
+
+[node name="Toolbar" type="HBoxContainer" parent="Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
+theme_override_constants/separation = 12
+alignment = 0
+
+[node name="RemoveCellButton" type="Button" parent="Panel/Toolbar"]
+layout_mode = 2
+toggle_mode = true
+text = "Remove Cell"
+
+[node name="CellKindOption" type="OptionButton" parent="Panel/Toolbar"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "Cell Kind"
+
+[node name="NormalTilesOption" type="OptionButton" parent="Panel/Toolbar"]
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+text = "Normal Tiles"
+
+[node name="SpecialTilesOption" type="OptionButton" parent="Panel/Toolbar"]
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+text = "Special Tiles"
+
+[node name="IconViewport" type="SubViewport" parent="."]
+own_world_3d = true
+transparent_bg = true
+size = Vector2i(128, 128)
+render_target_update_mode = 4
+
+[node name="IconCamera" type="Camera3D" parent="IconViewport"]
+position = Vector3(0, 1.2, 0)
+rotation_degrees = Vector3(-90, 0, 0)
+projection = 1
+size = 1.0
+current = true
+
+[node name="IconLight" type="DirectionalLight3D" parent="IconViewport"]
+transform = Transform3D(0.90630776, 0.34618863, -0.24240388, 0, 0.57357645, 0.81915206, 0.42261827, -0.74240386, 0.5198368, 0, 2, 0)
+light_energy = 1.1

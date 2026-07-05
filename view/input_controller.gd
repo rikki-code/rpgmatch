@@ -25,6 +25,7 @@ var _drag_fraction: float = 0.0
 var _companion_cell: GridCell
 var _companion_tile: Tile
 var _spring_tweens: Dictionary = {}  # Tile -> Tween
+var _editor_active: bool = false
 
 func setup(p_camera: Camera3D, p_board_view: BoardView3D, p_board: BoardGraph, p_swap_controller: SwapController, p_detonate_controller: DetonateController) -> void:
 	camera = p_camera
@@ -33,7 +34,12 @@ func setup(p_camera: Camera3D, p_board_view: BoardView3D, p_board: BoardGraph, p
 	swap_controller = p_swap_controller
 	detonate_controller = p_detonate_controller
 
+func set_editor_active(active: bool) -> void:
+	_editor_active = active
+
 func _unhandled_input(event: InputEvent) -> void:
+	if _editor_active:
+		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
 			if event.double_click:
@@ -209,8 +215,4 @@ func _end_drag() -> void:
 	_companion_tile = null
 
 func _ground_plane_point(screen_pos: Vector2) -> Vector3:
-	var from := camera.project_ray_origin(screen_pos)
-	var dir := camera.project_ray_normal(screen_pos)
-	var denom := dir.y if absf(dir.y) > 0.0001 else 0.0001
-	var t := -from.y / denom
-	return from + dir * t
+	return BoardView3D.ground_plane_point(camera, screen_pos)
