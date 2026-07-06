@@ -27,6 +27,7 @@ static func build(board: BoardGraph) -> Array[Entry]:
 	for color in range(board.color_count):
 		entries.append(Entry.new(&"normal_%d" % color, Category.NORMAL, "Color %d" % color, func() -> Tile: return Tile.make_normal(color)))
 
+	entries.append(Entry.new(&"prism", Category.SPECIAL, "Prism", func() -> Tile: return Tile.make_prism()))
 	entries.append(Entry.new(&"arrow_row", Category.SPECIAL, "Arrow (Row)", func() -> Tile: return Tile.make_arrow_blaster(ArrowBlasterCore.Axis.ROW)))
 	entries.append(Entry.new(&"arrow_col", Category.SPECIAL, "Arrow (Column)", func() -> Tile: return Tile.make_arrow_blaster(ArrowBlasterCore.Axis.COLUMN)))
 	entries.append(Entry.new(&"bomb", Category.SPECIAL, "Bomb", func() -> Tile: return Tile.make_bomb()))

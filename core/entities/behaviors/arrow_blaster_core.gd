@@ -15,7 +15,7 @@ extends TriggerCore
 ## Set opposite to the match's own orientation — a vertical match (a column
 ## run) spawns a ROW blaster and vice versa (see EffectResolveMatchGroup).
 ## BOTH: wipes row and column at once — only reachable by combining two
-## arrow blasters (see _do_combine_with), never spawned from a match.
+## arrow blasters (see _do_combine_with below), never spawned from a match.
 enum Axis { ROW, COLUMN, BOTH }
 
 var axis: Axis
@@ -51,9 +51,17 @@ func _do_trigger(_self_tile: Tile, cell: GridCell, board: BoardGraph) -> Array[E
 					cells.append(column_cell)
 	return [EffectArrowBlast.new(cell, axis, cells)]
 
-func _do_combine_with(other: TriggerCore) -> Tile:
+func can_combine_with_core(other: TriggerCore) -> bool:
+	return other is ArrowBlasterCore or other is BombCore or other is PrismCore
+
+func _do_combine_with(other: TriggerCore, cell: GridCell, board: BoardGraph) -> Array[Effect]:
 	if other is ArrowBlasterCore:
-		return Tile.make_arrow_blaster(Axis.BOTH, extra_lines + other.extra_lines)
+		return _place_and_trigger(Tile.make_arrow_blaster(Axis.BOTH, extra_lines + other.extra_lines), cell, board)
 	if other is BombCore:
-		return Tile.make_arrow_blaster(axis, extra_lines + other.radius)
-	return null
+		return _place_and_trigger(Tile.make_arrow_blaster(axis, extra_lines + other.radius), cell, board)
+	if other is PrismCore:
+		return PrismCore.combine_partner_into_majority(self, board)
+	return []
+
+func spawn_similar_tile() -> Tile:
+	return Tile.make_arrow_blaster(axis, extra_lines)

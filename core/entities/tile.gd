@@ -53,6 +53,16 @@ static func make_arrow_blaster(axis: ArrowBlasterCore.Axis, extra_lines: int = 0
 	tile.behaviors.append(CombineEffectsBehavior.new(core))
 	return tile
 
+static func make_prism() -> Tile:
+	var tile := Tile.new()
+	tile.color = -1
+	var core := PrismCore.new()
+	tile.behaviors.append(core)
+	tile.behaviors.append(ManualTriggerBehavior.new(core))
+	tile.behaviors.append(SwapSplashTriggerBehavior.new(core))
+	tile.behaviors.append(CombineEffectsBehavior.new(core))
+	return tile
+
 func display_name() -> String:
 	return "tile(color=%d)" % color
 

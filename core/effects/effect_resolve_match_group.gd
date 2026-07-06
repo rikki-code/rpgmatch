@@ -1,26 +1,29 @@
 ## Turns one resolved MatchGroup into destroy effects — and, if the group is
-## big enough, a bonus tile. A run/blob of BOMB_MATCH_THRESHOLD or more cells
+## big enough, a bonus tile. A group of BOMB_MATCH_THRESHOLD or more cells
 ## fully destroys (same on_matched/splash cascade as any normal match,
-## drained through `resolver` before returning) and only then spawns a bomb
-## on one of its cells; a straight run of exactly ARROW_MATCH_SIZE spawns an
-## arrow blaster instead, oriented across the match (see
+## drained through `resolver` before returning) and only then spawns a bonus
+## on the anchor: a straight line (all cells share one `x` or one `y`) spawns
+## a prism, any other shape (an L/T/blob from two runs sharing a cell) spawns
+## a bomb — see _is_straight_line. A straight run of exactly ARROW_MATCH_SIZE
+## spawns an arrow blaster instead, oriented across the match (see
 ## ArrowBlasterCore.Axis) — a size-4 group is always a pure straight run, no
 ## L/T branch, since any branch would push a group's size to
 ## BOMB_MATCH_THRESHOLD or above (two runs of >= 3 sharing one cell already
-## total >= 5). Either way the spawn lands on the anchor: whichever cell sits
-## closest to the group's centroid, so it reads as "the middle of the match"
-## rather than an arbitrary corner — never the other way around, or a
-## sibling cell's splash (it's almost always orthogonally adjacent to the
-## anchor, being part of the same connected group) would detonate the bonus
-## tile the instant it spawns. Keeps the "how big/shaped a match becomes a
-## bonus tile" policy in one place instead of leaking a size check into
-## PhasePhysicsResolve.
+## total >= 5), landing in the bomb/prism tier above instead. Either way the
+## spawn lands on the anchor: whichever cell sits closest to the group's
+## centroid, so it reads as "the middle of the match" rather than an
+## arbitrary corner — never the other way around, or a sibling cell's splash
+## (it's almost always orthogonally adjacent to the anchor, being part of the
+## same connected group) would detonate the bonus tile the instant it spawns.
+## Keeps the "how big/shaped a match becomes a bonus tile" policy in one place
+## instead of leaking a size check into PhasePhysicsResolve.
 class_name EffectResolveMatchGroup
 extends Effect
 
 const NORMAL_MATCH_SIZE := 3
 const ARROW_MATCH_SIZE := 4
 const BOMB_MATCH_THRESHOLD := 5
+const PRISM_MATCH_THRESHOLD := 5
 
 var group: MatchGroup
 var resolver: EffectResolver
@@ -49,7 +52,10 @@ func execute(_board: BoardGraph) -> Array[Effect]:
 	if cells.size() == ARROW_MATCH_SIZE:
 		return [EffectSpawnArrowBlasterTile.new(anchor, _blast_axis_for(cells))]
 
-	return [EffectSpawnBombTile.new(anchor)]
+	if cells.size() == BOMB_MATCH_THRESHOLD && ! _is_straight_line(cells):
+		return [EffectSpawnBombTile.new(anchor)]
+
+	return [EffectSpawnPrismTile.new(anchor)]
 
 static func _blast_axis_for(cells: Array[GridCell]) -> ArrowBlasterCore.Axis:
 	var first_x := cells[0].position.x
@@ -57,6 +63,23 @@ static func _blast_axis_for(cells: Array[GridCell]) -> ArrowBlasterCore.Axis:
 		if cell.position.x != first_x:
 			return ArrowBlasterCore.Axis.COLUMN
 	return ArrowBlasterCore.Axis.ROW
+
+## True if every cell shares one `x` (a column run) or one `y` (a row run) —
+## an L/T/blob from two runs sharing a cell never satisfies either.
+static func _is_straight_line(cells: Array[GridCell]) -> bool:
+	var first_x := cells[0].position.x
+	var same_x := true
+	for cell in cells:
+		if cell.position.x != first_x:
+			same_x = false
+			break
+	if same_x:
+		return true
+	var first_y := cells[0].position.y
+	for cell in cells:
+		if cell.position.y != first_y:
+			return false
+	return true
 
 static func _central_cell(cells: Array[GridCell]) -> GridCell:
 	var center := Vector2.ZERO

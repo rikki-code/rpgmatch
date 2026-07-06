@@ -27,9 +27,17 @@ func _do_trigger(_self_tile: Tile, cell: GridCell, board: BoardGraph) -> Array[E
 	else:
 		return [EffectBombBlast.new(cell, board.cells_within_square_radius(cell, radius))]
 
-func _do_combine_with(other: TriggerCore) -> Tile:
+func can_combine_with_core(other: TriggerCore) -> bool:
+	return other is BombCore or other is ArrowBlasterCore or other is PrismCore
+
+func _do_combine_with(other: TriggerCore, cell: GridCell, board: BoardGraph) -> Array[Effect]:
 	if other is BombCore:
-		return Tile.make_bomb(radius + other.radius)
+		return _place_and_trigger(Tile.make_bomb(radius + other.radius), cell, board)
 	if other is ArrowBlasterCore:
-		return Tile.make_arrow_blaster(other.axis, radius + other.extra_lines)
-	return null
+		return _place_and_trigger(Tile.make_arrow_blaster(other.axis, radius + other.extra_lines), cell, board)
+	if other is PrismCore:
+		return PrismCore.combine_partner_into_majority(self, board)
+	return []
+
+func spawn_similar_tile() -> Tile:
+	return Tile.make_bomb(radius)

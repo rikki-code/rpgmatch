@@ -1,0 +1,48 @@
+[gd_scene format=3 uid="uid://v8fgmt8nccwy"]
+
+[ext_resource type="Material" path="res://view/packs/special_tiles_pack/standard_pack/tile_prism_material.tres" id="1"]
+[ext_resource type="Material" path="res://view/packs/special_tiles_pack/standard_pack/tile_prism_ball_material.tres" id="2"]
+
+[sub_resource type="SphereMesh" id="SphereMesh_core"]
+radius = 0.2
+height = 0.4
+
+[sub_resource type="SphereMesh" id="SphereMesh_ball"]
+radius = 0.085
+height = 0.17
+
+[node name="TilePrism" type="Node3D" unique_id=1992400306]
+
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1609921746]
+mesh = SubResource("SphereMesh_core")
+surface_material_override/0 = ExtResource("1")
+
+[node name="ColorBall0" type="MeshInstance3D" parent="." unique_id=236864928]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.26, 0.14, 0)
+mesh = SubResource("SphereMesh_ball")
+surface_material_override/0 = ExtResource("2")
+
+[node name="ColorBall1" type="MeshInstance3D" parent="." unique_id=731979201]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.13, 0.14, 0.2253)
+mesh = SubResource("SphereMesh_ball")
+surface_material_override/0 = ExtResource("2")
+
+[node name="ColorBall2" type="MeshInstance3D" parent="." unique_id=1880068873]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.13, 0.14, 0.2253)
+mesh = SubResource("SphereMesh_ball")
+surface_material_override/0 = ExtResource("2")
+
+[node name="ColorBall3" type="MeshInstance3D" parent="." unique_id=1453377773]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.26, 0.14, 0)
+mesh = SubResource("SphereMesh_ball")
+surface_material_override/0 = ExtResource("2")
+
+[node name="ColorBall4" type="MeshInstance3D" parent="." unique_id=76204056]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.13, 0.14, -0.2253)
+mesh = SubResource("SphereMesh_ball")
+surface_material_override/0 = ExtResource("2")
+
+[node name="ColorBall5" type="MeshInstance3D" parent="." unique_id=1611920198]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.13, 0.14, -0.2253)
+mesh = SubResource("SphereMesh_ball")
+surface_material_override/0 = ExtResource("2")

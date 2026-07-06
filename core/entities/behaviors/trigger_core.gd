@@ -11,6 +11,15 @@
 ## SwapSplashTriggerBehavior — see Tile.make_bomb/make_arrow_blaster), all
 ## holding a reference to the same TriggerCore so only one can ever actually
 ## detonate it.
+##
+## Combining two bonus tiles is also decided here: `can_combine_with_core` is
+## a pure yes/no (checked from both tiles before anything mutates, see
+## CombineEffectsBehavior — named apart from TileBehavior.can_combine_with,
+## which takes Tiles, not TriggerCores, and can't be overridden with a
+## different signature), `_do_combine_with` performs it and returns whatever
+## Effects result — not necessarily a single tile placed at `cell` (see
+## PrismCore, whose recipe spawns/triggers the partner's own kind across many
+## cells instead).
 class_name TriggerCore
 extends TileBehavior
 
@@ -30,5 +39,20 @@ func trigger(self_tile: Tile, cell: GridCell, board: BoardGraph) -> Array[Effect
 func _do_trigger(_self_tile: Tile, _cell: GridCell, _board: BoardGraph) -> Array[Effect]:
 	return []
 
-func _do_combine_with(_other: TriggerCore) -> Tile:
+func can_combine_with_core(_other: TriggerCore) -> bool:
+	return false
+
+func _do_combine_with(_other: TriggerCore, _cell: GridCell, _board: BoardGraph) -> Array[Effect]:
+	return []
+
+func spawn_similar_tile() -> Tile:
 	return null
+
+static func of(tile: Tile) -> TriggerCore:
+	for behavior in tile.behaviors:
+		if behavior is TriggerCore:
+			return behavior
+	return null
+
+static func _place_and_trigger(tile: Tile, cell: GridCell, _board: BoardGraph) -> Array[Effect]:
+	return [EffectPlaceTile.new(cell, tile), EffectTriggerTile.new(cell, tile)]
