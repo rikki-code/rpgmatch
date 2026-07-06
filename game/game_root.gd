@@ -4,6 +4,7 @@ class_name GameRoot
 extends Node3D
 
 @export var world_gen_params: WorldGenParams
+@export var dev_mode: bool = false
 
 var board: BoardGraph
 var ctx: TurnContext
@@ -50,16 +51,23 @@ func _ready() -> void:
 	var editor_grid_overlay: EditorGridOverlay = $EditorGridOverlay
 	editor_grid_overlay.setup(board)
 	var editor_toolbar: EditorToolbar = $UILayer/EditorToolbar
-	editor_toolbar.setup(editor_mode_controller.cell_catalog, editor_mode_controller.tile_catalog)
 
 	editor_mode_controller.mode_changed.connect(func(active: bool) -> void:
 		input_controller.set_editor_active(active)
 		editor_grid_overlay.set_active(active)
 		editor_toolbar.set_panel_visible(active)
+		if active:
+			editor_toolbar.setup(editor_mode_controller.cell_catalog, editor_mode_controller.tile_catalog)
 	)
 	editor_toolbar.cell_kind_selected.connect(editor_mode_controller.select_cell_kind)
 	editor_toolbar.remove_cell_selected.connect(editor_mode_controller.select_remove_cell)
 	editor_toolbar.tile_selected.connect(editor_mode_controller.select_tile)
+
+	var idle_throttle_controller: IdleThrottleController = $IdleThrottleController
+	idle_throttle_controller.setup(ctx)
+
+	var fps_counter: FpsCounter = $UILayer/FpsCounter
+	fps_counter.set_active(dev_mode)
 
 	turn_manager.start()
 

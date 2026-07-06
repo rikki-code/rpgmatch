@@ -4,9 +4,11 @@
 [ext_resource type="Script" uid="uid://st2iu2oucth4" path="res://view/board_view_3d.gd" id="2"]
 [ext_resource type="Script" uid="uid://bqdp5710mk1l6" path="res://view/input_controller.gd" id="3"]
 [ext_resource type="Environment" path="res://view/packs/background_pack/standard_pack/board_environment.tres" id="4"]
-[ext_resource type="Script" path="res://view/editor/editor_mode_controller.gd" id="5"]
-[ext_resource type="Script" path="res://view/editor/editor_grid_overlay.gd" id="6"]
-[ext_resource type="PackedScene" path="res://view/editor/editor_toolbar.tscn" id="7"]
+[ext_resource type="Script" uid="uid://3tvufcwfprm1" path="res://view/editor/editor_mode_controller.gd" id="5"]
+[ext_resource type="Script" uid="uid://b4cklw84aerpa" path="res://view/editor/editor_grid_overlay.gd" id="6"]
+[ext_resource type="PackedScene" uid="uid://dqxk1w2h5m8bn" path="res://view/editor/editor_toolbar.tscn" id="7"]
+[ext_resource type="Script" uid="uid://bsetbbjy1x6rr" path="res://view/idle_throttle_controller.gd" id="8"]
+[ext_resource type="Script" uid="uid://bdyn8hm78ww13" path="res://view/dev/fps_counter.gd" id="9"]
 
 [node name="GameRoot" type="Node3D" unique_id=1180910243]
 script = ExtResource("1")
@@ -25,11 +27,14 @@ script = ExtResource("2")
 [node name="InputController" type="Node3D" parent="." unique_id=863571155]
 script = ExtResource("3")
 
-[node name="EditorModeController" type="Node3D" parent="."]
+[node name="EditorModeController" type="Node3D" parent="." unique_id=606183973]
 script = ExtResource("5")
 
-[node name="EditorGridOverlay" type="Node3D" parent="."]
+[node name="EditorGridOverlay" type="Node3D" parent="." unique_id=156882691]
 script = ExtResource("6")
+
+[node name="IdleThrottleController" type="Node" parent="." unique_id=336121638]
+script = ExtResource("8")
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=663818620]
 transform = Transform3D(1, 0, 0, 0, 0.087155804, 0.9961947, 0, -0.9961947, 0.087155804, 3.5, 15, 2.2)
@@ -37,6 +42,15 @@ projection = 1
 current = true
 size = 12.0
 
-[node name="UILayer" type="CanvasLayer" parent="."]
+[node name="UILayer" type="CanvasLayer" parent="." unique_id=127431313]
 
-[node name="EditorToolbar" parent="UILayer" instance=ExtResource("7")]
+[node name="EditorToolbar" parent="UILayer" unique_id=1154835467 instance=ExtResource("7")]
+layout_mode = 3
+
+[node name="FpsCounter" type="Label" parent="UILayer" unique_id=29881930]
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 160.0
+offset_bottom = 32.0
+text = "FPS: --"
+script = ExtResource("9")

@@ -24,6 +24,8 @@ var _tile_view := TileView.new()
 var _cell_entries: Array[EditorCellCatalog.Entry] = []
 var _normal_entries: Array[EditorTileCatalog.Entry] = []
 var _special_entries: Array[EditorTileCatalog.Entry] = []
+## setup() is called lazily from game_root's mode_changed handler.
+var _populated: bool = false
 
 ## item_selected only fires on an actual index change — re-picking a tool
 ## dropdown's already-selected entry while a different control (e.g. the
@@ -40,6 +42,9 @@ func set_panel_visible(visible_now: bool) -> void:
 	_panel.visible = visible_now
 
 func setup(cell_catalog: Array[EditorCellCatalog.Entry], tile_catalog: Array[EditorTileCatalog.Entry]) -> void:
+	if _populated:
+		return
+	_populated = true
 	_cell_entries = cell_catalog
 	_normal_entries.clear()
 	_special_entries.clear()
@@ -59,6 +64,7 @@ func setup(cell_catalog: Array[EditorCellCatalog.Entry], tile_catalog: Array[Edi
 	await _populate_tiles(_normal_option, _normal_entries)
 	await _populate_tiles(_special_option, _special_entries)
 	_set_active_tool(Tool.CELL_KIND)
+	_icon_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 
 func _populate_tiles(option: OptionButton, entries: Array[EditorTileCatalog.Entry]) -> void:
 	option.clear()
