@@ -32,9 +32,12 @@ func trigger(self_tile: Tile, cell: GridCell, board: BoardGraph) -> Array[Effect
 	if _triggered:
 		return []
 	_triggered = true
+	var effects: Array[Effect] = []
 	if cell.occupant == self_tile:
 		cell.occupant = null
-	return _do_trigger(self_tile, cell, board)
+		effects.append(EffectEntityRemoved.new(self_tile, cell))
+	effects.append_array(_do_trigger(self_tile, cell, board))
+	return effects
 
 func _do_trigger(_self_tile: Tile, _cell: GridCell, _board: BoardGraph) -> Array[Effect]:
 	return []

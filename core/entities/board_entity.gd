@@ -19,3 +19,12 @@ func on_splash_damage(_amount: int, _cell: GridCell, _board: BoardGraph) -> Arra
 ## Reacts to `amount` damage delivered by e.g EffectBlastDamage
 func on_damage(_amount: int, cell: GridCell, _board: BoardGraph) -> Array[Effect]:
 	return [EffectDestroyTile.new(cell)]
+
+## Points awarded on destruction (see ScoreTracker); override to differ.
+func score_value() -> int:
+	return 10
+
+## Quest-target tag (e.g. "color_2", "bomb") — distinct from visual_kind(),
+## which is view-only. Empty = not targetable.
+func quest_kind_id() -> StringName:
+	return &""

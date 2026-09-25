@@ -4,3 +4,6 @@ extends TileBehavior
 
 func can_match_with(self_tile: Tile, other_tile: Tile) -> bool:
 	return other_tile.color == self_tile.color
+
+func quest_kind_id(self_tile: Tile) -> StringName:
+	return StringName("color_%d" % self_tile.color)

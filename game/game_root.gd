@@ -11,6 +11,7 @@ var ctx: TurnContext
 var turn_manager: TurnManager
 var swap_controller: SwapController
 var detonate_controller: DetonateController
+var quest_manager: QuestManager
 
 func _ready() -> void:
 	var params := world_gen_params if world_gen_params != null else WorldGenParams.new()
@@ -18,8 +19,15 @@ func _ready() -> void:
 
 	ctx = TurnContext.new(board)
 	ctx.resolver = EffectResolver.new(board)
+	ctx.score_tracker = ScoreTracker.new(ctx.resolver)
 	swap_controller = SwapController.new(ctx)
 	detonate_controller = DetonateController.new(ctx)
+
+	quest_manager = QuestManager.new(board, ctx.resolver, RandomQuestGenerator.new())
+	quest_manager.fill_from_generator()
+	quest_manager.quest_completed.connect(func(quest: QuestProgress) -> void:
+		ctx.score_tracker.award_bonus(quest.definition.target_count * QUEST_REWARD_PER_TILE)
+	)
 
 	var phases: Array[TurnPhase] = [
 		PhasePlayerInput.new(),
@@ -69,7 +77,14 @@ func _ready() -> void:
 	var fps_counter: FpsCounter = $UILayer/FpsCounter
 	fps_counter.set_active(dev_mode)
 
+	var score_hud: ScoreHud = $UILayer/ScoreHud
+	score_hud.setup(ctx.score_tracker)
+	var quest_hud: QuestHud = $UILayer/QuestHud
+	quest_hud.setup(quest_manager)
+
 	turn_manager.start()
+
+const QUEST_REWARD_PER_TILE := 5
 
 const CAMERA_HEIGHT := 15.0
 const CAMERA_TILT_DEGREES := 5.0

@@ -40,3 +40,7 @@ func manual_trigger(_self_tile: Tile, _cell: GridCell, _board: BoardGraph) -> Ar
 
 func visual_kind(_self_tile: Tile) -> StringName:
 	return &""
+
+## See BoardEntity.quest_kind_id. Empty = no opinion.
+func quest_kind_id(_self_tile: Tile) -> StringName:
+	return &""

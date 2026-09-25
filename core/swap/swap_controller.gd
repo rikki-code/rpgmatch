@@ -38,6 +38,7 @@ func try_swap(cell_a: GridCell, cell_b: GridCell) -> bool:
 	if tile_a.can_combine_with(tile_b) and tile_b.can_combine_with(tile_a):
 		cell_a.occupant = null
 		cell_b.occupant = null
+		ctx.score_tracker.begin_wave()
 		ctx.resolver.resolve(tile_a.combine_with(tile_b, cell_b, ctx.board))
 		tiles_combined.emit(cell_a, cell_b)
 		await ctx.animation_driver.await_settle()

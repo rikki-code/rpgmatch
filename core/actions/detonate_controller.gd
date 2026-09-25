@@ -24,6 +24,7 @@ func try_detonate(cell: GridCell) -> bool:
 	if not tile.is_manually_triggerable():
 		return false
 
+	ctx.score_tracker.begin_wave()
 	ctx.resolver.resolve(tile.manual_trigger(cell, ctx.board))
 	detonated.emit(cell)
 	await ctx.animation_driver.await_settle()

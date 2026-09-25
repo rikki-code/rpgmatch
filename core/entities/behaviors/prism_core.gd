@@ -19,6 +19,9 @@ extends TriggerCore
 func visual_kind(_self_tile: Tile) -> StringName:
 	return &"prism"
 
+func quest_kind_id(_self_tile: Tile) -> StringName:
+	return &"prism"
+
 func spawn_similar_tile() -> Tile:
 	return Tile.make_prism()
 

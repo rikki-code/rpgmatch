@@ -13,10 +13,12 @@ func execute(ctx: TurnContext) -> void:
 			break
 
 		if not groups.is_empty():
-			var match_effects: Array[Effect] = []
+			# One begin_wave() per group, not per iteration: a single swap that
+			# matches two colors at once escalates the combo same as a
+			# cascade would, instead of both groups scoring at the same x.
 			for group in groups:
-				match_effects.append(EffectResolveMatchGroup.new(group, ctx.resolver))
-			ctx.resolver.resolve(match_effects)
+				ctx.score_tracker.begin_wave()
+				ctx.resolver.resolve([EffectResolveMatchGroup.new(group, ctx.resolver)])
 			await ctx.animation_driver.await_settle()
 
 		var gravity_effects: Array[Effect] = []

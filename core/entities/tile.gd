@@ -111,6 +111,13 @@ func visual_kind() -> StringName:
 			return kind
 	return &""
 
+func quest_kind_id() -> StringName:
+	for behavior in behaviors:
+		var kind := behavior.quest_kind_id(self)
+		if kind != &"":
+			return kind
+	return &""
+
 func on_matched(cell: GridCell, board: BoardGraph) -> Array[Effect]:
 	var effects: Array[Effect] = []
 	for behavior in behaviors:

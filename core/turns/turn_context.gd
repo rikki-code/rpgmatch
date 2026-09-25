@@ -9,6 +9,7 @@ var awaiting_player_input: bool = false
 ## Lets a phase pace itself between world-cycle waves (see PhasePhysicsResolve).
 ## Defaults to an instant no-op; game_root swaps in a view-backed driver.
 var animation_driver: AnimationDriver = AnimationDriver.new()
+var score_tracker: ScoreTracker
 
 func _init(p_board: BoardGraph) -> void:
 	board = p_board

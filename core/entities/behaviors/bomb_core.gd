@@ -21,6 +21,9 @@ func _init(p_radius: int = 1, p_shape: Shape = Shape.MANHATTAN) -> void:
 func visual_kind(_self_tile: Tile) -> StringName:
 	return &"bomb"
 
+func quest_kind_id(_self_tile: Tile) -> StringName:
+	return &"bomb"
+
 func _do_trigger(_self_tile: Tile, cell: GridCell, board: BoardGraph) -> Array[Effect]:
 	if shape == Shape.MANHATTAN:
 		return [EffectBombBlast.new(cell, board.cells_within_manhattan_radius(cell, radius))]

@@ -37,6 +37,9 @@ func visual_kind(_self_tile: Tile) -> StringName:
 		_:
 			return &"arrow_blaster_both"
 
+func quest_kind_id(_self_tile: Tile) -> StringName:
+	return &"arrow_blaster"
+
 func _do_trigger(_self_tile: Tile, cell: GridCell, board: BoardGraph) -> Array[Effect]:
 	var cells: Array[GridCell]
 	match axis:
