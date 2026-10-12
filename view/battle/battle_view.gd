@@ -54,6 +54,10 @@ func setup(ctx: TurnContext) -> void:
 	if not ctx.score_tracker.score_awarded.is_connected(_on_score_awarded):
 		ctx.score_tracker.score_awarded.connect(_on_score_awarded)
 
+## Screen areas the board must stay clear of (see GameRoot._hud_insets).
+func hud_rects() -> Array[Rect2]:
+	return [_allies_column.get_global_rect(), _enemies_column.get_global_rect(), _turn_label.get_global_rect(), _level_label.get_global_rect()]
+
 func _process(_delta: float) -> void:
 	if _battle == null or _battle.active_character == null:
 		return

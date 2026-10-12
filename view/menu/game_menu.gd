@@ -45,6 +45,9 @@ func setup(mode_names: Array[String], mode_index: int, params: WorldGenParams) -
 func show_selected(mode_index: int, editor_active: bool) -> void:
 	_mode_option.select(_editor_item if editor_active else mode_index)
 
+func hud_rects() -> Array[Rect2]:
+	return [_open_button.get_global_rect()]
+
 func is_open() -> bool:
 	return _dim.visible
 

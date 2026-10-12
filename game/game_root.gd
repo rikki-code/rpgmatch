@@ -20,6 +20,7 @@ var editor_mode_controller: EditorModeController
 var score_hud: ScoreHud
 var quest_hud: QuestHud
 var battle_view: BattleView
+var camera: Camera3D
 var game_menu: GameMenu
 ## Mode chosen mid-turn, applied once the turn manager parks (see switch_mode).
 var _pending_mode: GameMode
@@ -52,9 +53,8 @@ func _ready() -> void:
 	swap_controller.tiles_combined.connect(func(_a: GridCell, _b: GridCell) -> void: _after_board_move())
 	detonate_controller.detonated.connect(func(_cell: GridCell) -> void: _after_board_move())
 
-	var camera: Camera3D = $Camera3D
-	_place_camera(camera)
-	get_tree().root.size_changed.connect(func() -> void: _place_camera(camera))
+	camera = $Camera3D
+	get_tree().root.size_changed.connect(_refit_camera)
 
 	var input_controller: InputController = $InputController
 	input_controller.setup(camera, board_view, board, swap_controller, detonate_controller)
@@ -153,6 +153,7 @@ func _apply_mode(mode: GameMode) -> void:
 	score_hud.visible = mode.shows_score_hud()
 	quest_hud.visible = mode.shows_quest_hud()
 	battle_view.visible = mode.shows_battle_view()
+	_refit_camera()
 	if ctx.battle != null:
 		battle_view.setup(ctx)
 		ctx.battle.ai_move_chosen.connect(_show_ai_move)
@@ -186,7 +187,12 @@ const CAMERA_HEIGHT := 15.0
 const CAMERA_TILT_DEGREES := 5.0
 const CAMERA_MARGIN := 2.0
 
-func _place_camera(camera: Camera3D) -> void:
+## Deferred a frame so HUD containers have their final size after a mode switch.
+func _refit_camera() -> void:
+	await get_tree().process_frame
+	_place_camera()
+
+func _place_camera() -> void:
 	var cell_size := BoardView3D.CELL_SIZE
 	var center := Vector3((board.width - 1) * 0.5 * cell_size, 0.0, (board.height - 1) * 0.5 * cell_size)
 	# Tilted `CAMERA_TILT_DEGREES` off straight-down: solve where a ray from
@@ -201,11 +207,42 @@ func _place_camera(camera: Camera3D) -> void:
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
 	camera.keep_aspect = Camera3D.KEEP_HEIGHT
 
-	# `size` under KEEP_HEIGHT only guarantees vertical fit; a narrow window
-	# would otherwise clip board width, so also solve for the size that
-	# makes the (size * aspect) horizontal span cover the board.
+	# Fit the board into the screen area the HUD leaves free, then shift the
+	# view (h/v_offset, in world units) so the board sits centered in it.
 	var viewport_size := get_viewport().get_visible_rect().size
-	var aspect: float = viewport_size.x / viewport_size.y if viewport_size.y > 0 else 1.0
-	var needed_height := board.height * BoardView3D.CELL_SIZE + CAMERA_MARGIN
-	var needed_width := board.width * BoardView3D.CELL_SIZE + CAMERA_MARGIN
-	camera.size = maxf(needed_height, needed_width / aspect)
+	var free_rect := _free_screen_rect(viewport_size)
+	var needed_height := board.height * cell_size + CAMERA_MARGIN
+	var needed_width := board.width * cell_size + CAMERA_MARGIN
+	camera.size = maxf(needed_height * viewport_size.y / free_rect.size.y, needed_width * viewport_size.y / free_rect.size.x)
+	var pixels_per_unit := viewport_size.y / camera.size
+	var shift := free_rect.get_center() - viewport_size * 0.5
+	camera.h_offset = -shift.x / pixels_per_unit
+	camera.v_offset = shift.y / pixels_per_unit
+
+const HUD_GAP := 12.0
+
+## Viewport minus the visible HUD: blockers in the left/right 40% push that
+## side in, centered ones push the top or bottom.
+func _free_screen_rect(viewport_size: Vector2) -> Rect2:
+	var rects: Array[Rect2] = game_menu.hud_rects()
+	if score_hud.visible:
+		rects.append(score_hud.get_global_rect())
+	if quest_hud.visible:
+		rects.append(quest_hud.get_global_rect())
+	if battle_view.visible:
+		rects.append_array(battle_view.hud_rects())
+	var left := 0.0
+	var right := viewport_size.x
+	var top := 0.0
+	var bottom := viewport_size.y
+	for rect in rects:
+		if rect.end.x < viewport_size.x * 0.4:
+			left = maxf(left, rect.end.x + HUD_GAP)
+		elif rect.position.x > viewport_size.x * 0.6:
+			right = minf(right, rect.position.x - HUD_GAP)
+		elif rect.get_center().y < viewport_size.y * 0.5:
+			top = maxf(top, rect.end.y + HUD_GAP)
+		else:
+			bottom = minf(bottom, rect.position.y - HUD_GAP)
+	var free := Rect2(left, top, right - left, bottom - top)
+	return free if free.size.x > 0.0 and free.size.y > 0.0 else Rect2(Vector2.ZERO, viewport_size)
