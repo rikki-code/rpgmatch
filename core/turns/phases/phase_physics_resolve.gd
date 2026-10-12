@@ -7,6 +7,10 @@ class_name PhasePhysicsResolve
 extends TurnPhase
 
 func execute(ctx: TurnContext) -> void:
+	await settle(ctx)
+
+## Also used outside the turn cycle (editor exit) to settle edits.
+static func settle(ctx: TurnContext) -> void:
 	while true:
 		var groups := MatchFinder.find_matches(ctx.board)
 		if groups.is_empty() and not ctx.board.has_empty_holdable_cell():

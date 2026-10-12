@@ -45,7 +45,7 @@ func _ready() -> void:
 func set_panel_visible(visible_now: bool) -> void:
 	_panel.visible = visible_now
 
-func setup(cell_catalog: Array[EditorCellCatalog.Entry], tile_catalog: Array[EditorTileCatalog.Entry], modes: Array[GameMode] = []) -> void:
+func setup(cell_catalog: Array[EditorCellCatalog.Entry], tile_catalog: Array[EditorTileCatalog.Entry], modes: Array[GameMode] = [], current_mode: GameMode = null) -> void:
 	if _populated:
 		return
 	_populated = true
@@ -72,6 +72,7 @@ func setup(cell_catalog: Array[EditorCellCatalog.Entry], tile_catalog: Array[Edi
 	_mode_option.clear()
 	for i in range(_modes.size()):
 		_mode_option.add_item(_modes[i].display_name(), i)
+	_mode_option.select(_modes.find(current_mode))
 
 	_set_active_tool(Tool.CELL_KIND)
 	_icon_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED

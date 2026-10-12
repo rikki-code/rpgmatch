@@ -12,6 +12,7 @@
 [ext_resource type="Script" path="res://view/hud/score_hud.gd" id="10"]
 [ext_resource type="Script" path="res://view/hud/quest_hud.gd" id="11"]
 [ext_resource type="Script" path="res://view/battle/battle_view.gd" id="12"]
+[ext_resource type="Script" path="res://view/menu/game_menu.gd" id="13"]
 
 [node name="GameRoot" type="Node3D" unique_id=1180910243]
 script = ExtResource("1")
@@ -69,9 +70,9 @@ script = ExtResource("10")
 anchor_left = 1.0
 anchor_right = 1.0
 offset_left = -160.0
-offset_top = 16.0
+offset_top = 64.0
 offset_right = -16.0
-offset_bottom = 250.0
+offset_bottom = 298.0
 theme_override_constants/separation = 10
 script = ExtResource("11")
 
@@ -117,3 +118,14 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("12")
+
+[node name="GameMenu" type="Control" parent="UILayer" unique_id=55501240]
+process_mode = 3
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("13")

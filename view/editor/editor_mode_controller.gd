@@ -2,14 +2,16 @@
 ## cell kind / remove-cell / place-a-catalog-tile — mutually exclusive) and
 ## turns a board click into a BoardEditController call. toggle() is separate
 ## from the key handler so a future menu entry point can call it directly.
-## Only enters/leaves while the turn manager is parked waiting for player
-## input — on leaving, kicks the turn cycle (see PhasePhysicsResolve) so
-## whatever edits left behind (empty cells, accidental matches) get settled
-## by the normal gravity/match machinery instead of a bespoke editor version.
+## Opens at once if the board is idle (waiting for player input / battle
+## over), otherwise holds the turn manager and opens when the current turn's
+## animations end. On leaving, settles the edits (PhasePhysicsResolve.settle)
+## and resumes exactly where the game was — editing never costs a turn.
 class_name EditorModeController
 extends Node3D
 
 signal mode_changed(active: bool)
+## After leaving: edits are settled and the game state is restored.
+signal settled
 
 enum ToolKind { SET_CELL_KIND, REMOVE_CELL, PLACE_TILE }
 
@@ -24,6 +26,10 @@ var active: bool = false
 var _tool_kind: ToolKind = ToolKind.SET_CELL_KIND
 var _active_cell_entry: EditorCellCatalog.Entry
 var _active_tile_entry: EditorTileCatalog.Entry
+var _pending := false
+var _hold_target: TurnManager
+var _held_manager: TurnManager
+var _awaiting_before := false
 
 func setup(p_camera: Camera3D, p_board_view: BoardView3D, p_ctx: TurnContext) -> void:
 	camera = p_camera
@@ -35,15 +41,53 @@ func setup(p_camera: Camera3D, p_board_view: BoardView3D, p_ctx: TurnContext) ->
 	_active_cell_entry = cell_catalog[0]
 
 func toggle() -> void:
-	if not active and not ctx.awaiting_player_input:
+	if active:
+		_close()
+	elif _pending:
+		_pending = false
+		_hold_target.cancel_hold()
+		_hold_target.held.disconnect(_on_held)
+	elif ctx.awaiting_player_input or (ctx.battle != null and ctx.battle.ended):
+		_open()
+	else:
+		_pending = true
+		_hold_target = ctx.turn_manager
+		_hold_target.request_hold()
+		_hold_target.held.connect(_on_held, CONNECT_ONE_SHOT)
+
+func _on_held() -> void:
+	_pending = false
+	# A mode switch on the same hold may already have started a new manager.
+	if _hold_target != ctx.turn_manager:
+		toggle()
 		return
-	active = not active
-	if not active:
-		ctx.board.link_grid_neighbors()
-		board_view.sync_cells()
-		board_view.refresh(null, true)
-		ctx.turn_manager.notify_phase_done()
-	mode_changed.emit(active)
+	_held_manager = _hold_target
+	_open()
+
+func _open() -> void:
+	# BoardEditController gates on this flag; the turn loop is parked meanwhile.
+	_awaiting_before = ctx.awaiting_player_input
+	ctx.awaiting_player_input = true
+	active = true
+	mode_changed.emit(true)
+
+func _close() -> void:
+	active = false
+	mode_changed.emit(false)
+	ctx.board.link_grid_neighbors()
+	board_view.sync_cells()
+	board_view.refresh(null, true)
+	ctx.awaiting_player_input = false
+	await PhasePhysicsResolve.settle(ctx)
+	# Edit-made matches must not feed this turn's score/attack power.
+	ctx.score_tracker.reset_combo()
+	ctx.awaiting_player_input = _awaiting_before
+	var held := _held_manager
+	_held_manager = null
+	settled.emit()
+	# A mode switch made while editing replaced the manager; that one starts on `settled`.
+	if held != null and held == ctx.turn_manager:
+		held.release()
 
 func select_cell_kind(entry: EditorCellCatalog.Entry) -> void:
 	_tool_kind = ToolKind.SET_CELL_KIND
