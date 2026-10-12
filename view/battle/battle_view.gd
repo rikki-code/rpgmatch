@@ -5,7 +5,8 @@
 class_name BattleView
 extends Control
 
-signal restart_requested
+## Victory -> next level on a new board; defeat -> retry the same level.
+signal continue_requested(victory: bool)
 signal exit_requested
 
 const COLUMN_WIDTH := 250.0
@@ -17,6 +18,8 @@ var _cards: Dictionary = {}  # Character -> CharacterCard
 var _allies_column: VBoxContainer
 var _enemies_column: VBoxContainer
 var _turn_label: Label
+var _level_label: Label
+var _continue_button: Button
 var _overlay: ColorRect
 var _result_label: Label
 
@@ -25,6 +28,7 @@ func _ready() -> void:
 	_allies_column = _make_column(true)
 	_enemies_column = _make_column(false)
 	_build_turn_label()
+	_build_level_label()
 	_build_overlay()
 
 func setup(ctx: TurnContext) -> void:
@@ -39,6 +43,7 @@ func setup(ctx: TurnContext) -> void:
 		_add_card(character, _enemies_column)
 	_overlay.visible = false
 	_turn_label.text = ""
+	_level_label.text = "Level %d" % _battle.level
 
 	_battle.turn_started.connect(_on_turn_started)
 	_battle.action_selected.connect(_on_action_selected)
@@ -100,6 +105,7 @@ func _on_battle_ended(victory: bool) -> void:
 	for character: Character in _cards:
 		_cards[character].set_active(false, false)
 	_result_label.text = "Victory!" if victory else "Defeat"
+	_continue_button.text = "Next battle" if victory else "Retry"
 	_overlay.visible = true
 
 func _on_card_clicked(character: Character) -> void:
@@ -122,7 +128,7 @@ func _make_column(left: bool) -> VBoxContainer:
 	var column := VBoxContainer.new()
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.alignment = BoxContainer.ALIGNMENT_CENTER
-	column.add_theme_constant_override("separation", 16)
+	column.add_theme_constant_override("separation", 10)
 	add_child(column)
 	column.anchor_top = 0.0
 	column.anchor_bottom = 1.0
@@ -149,6 +155,16 @@ func _build_turn_label() -> void:
 	_turn_label.offset_top = 16.0
 	_turn_label.offset_bottom = 56.0
 
+func _build_level_label() -> void:
+	_level_label = Label.new()
+	_level_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_level_label.add_theme_font_size_override("font_size", 30)
+	_level_label.add_theme_color_override("font_color", CharacterCard.BORDER_ACTIVE)
+	_level_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	_level_label.add_theme_constant_override("outline_size", 6)
+	add_child(_level_label)
+	_level_label.position = Vector2(EDGE_MARGIN, 16.0)
+
 ## Blocks the board while shown (MOUSE_FILTER_STOP) — the battle is over.
 func _build_overlay() -> void:
 	_overlay = ColorRect.new()
@@ -171,11 +187,10 @@ func _build_overlay() -> void:
 	_result_label.add_theme_color_override("font_color", CharacterCard.BORDER_ACTIVE)
 	box.add_child(_result_label)
 
-	var restart := Button.new()
-	restart.text = "Restart battle"
-	restart.custom_minimum_size = Vector2(220, 44)
-	restart.pressed.connect(func() -> void: restart_requested.emit())
-	box.add_child(restart)
+	_continue_button = Button.new()
+	_continue_button.custom_minimum_size = Vector2(220, 44)
+	_continue_button.pressed.connect(func() -> void: continue_requested.emit(_battle.is_victory()))
+	box.add_child(_continue_button)
 	var leave := Button.new()
 	leave.text = "Back to infinite mode"
 	leave.custom_minimum_size = Vector2(220, 44)

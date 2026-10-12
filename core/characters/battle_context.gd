@@ -6,6 +6,9 @@ extends RefCounted
 
 enum ActionType { ATTACK, DEFEND }
 
+## Cards per column BattleView is laid out for.
+const MAX_PER_SIDE := 5
+
 signal turn_started(character: Character)
 signal action_selected(character: Character, type: ActionType)
 signal target_selected(character: Character)
@@ -24,6 +27,7 @@ var pending_action: ActionType = ActionType.ATTACK
 ## Human's chosen attack target (clicked enemy card), see HumanController.
 var human_target: Character
 var ended := false
+var level := 1
 
 func _init(p_resolver: CombatResolver) -> void:
 	resolver = p_resolver

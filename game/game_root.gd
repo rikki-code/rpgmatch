@@ -13,7 +13,8 @@ var swap_controller: SwapController
 var detonate_controller: DetonateController
 var quest_manager: QuestManager
 var current_mode: GameMode
-var available_modes: Array[GameMode] = [InfiniteMode.new(), BattleMode.new()]
+var battle_mode := BattleMode.new()
+var available_modes: Array[GameMode] = [InfiniteMode.new(), battle_mode]
 var board_view: BoardView3D
 var editor_mode_controller: EditorModeController
 var score_hud: ScoreHud
@@ -87,7 +88,11 @@ func _ready() -> void:
 	quest_hud = $UILayer/QuestHud
 	quest_hud.setup(quest_manager)
 	battle_view = $UILayer/BattleView
-	battle_view.restart_requested.connect(func() -> void: switch_mode(current_mode))
+	battle_view.continue_requested.connect(func(victory: bool) -> void:
+		if victory:
+			GameSession.battle_level += 1
+		_restart()
+	)
 	battle_view.exit_requested.connect(func() -> void: switch_mode(available_modes[0]))
 
 	game_menu = $UILayer/GameMenu
@@ -140,6 +145,7 @@ func _restart() -> void:
 
 func _apply_mode(mode: GameMode) -> void:
 	current_mode = mode
+	battle_mode.level = GameSession.battle_level
 	GameSession.mode_index = available_modes.find(mode)
 	game_menu.show_selected(GameSession.mode_index, editor_mode_controller.active)
 	turn_manager = TurnManager.new(ctx, mode.build_phases(ctx))
