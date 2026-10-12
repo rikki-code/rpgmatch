@@ -32,7 +32,7 @@ jobs:
     outputs:
       list: ${{ steps.select.outputs.list }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: select
         env:
           INPUT: ${{ inputs.preset || 'default' }}
@@ -54,14 +54,14 @@ jobs:
     outputs:
       ref: ${{ steps.ref.outputs.ref }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - id: ref
         run: |
           hash="${{ hashFiles('ci/Dockerfile') }}"
           echo "ref=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/rpgmatch-godot:${GODOT_VERSION}-${GODOT_RELEASE}-${hash::12}" >> "$GITHUB_OUTPUT"
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -74,11 +74,13 @@ jobs:
           fi
 
       - if: steps.check.outputs.exists != 'true'
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Build and push Godot image
         if: steps.check.outputs.exists != 'true'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: false
         with:
           context: ci
           push: true
@@ -86,8 +88,6 @@ jobs:
           build-args: |
             GODOT_VERSION=${{ env.GODOT_VERSION }}
             GODOT_RELEASE=${{ env.GODOT_RELEASE }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
   export:
     name: Export ${{ matrix.preset }}
@@ -106,13 +106,13 @@ jobs:
       matrix:
         preset: ${{ fromJSON(needs.presets.outputs.list) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Export
         run: python3 ci/export.py ${{ matrix.preset }}
 
       - name: Upload build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rpgmatch-${{ matrix.preset }}
           path: build/${{ matrix.preset }}
@@ -120,7 +120,7 @@ jobs:
 
       - name: Upload Pages artifact
         if: matrix.preset == 'web' && github.ref == 'refs/heads/main'
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: build/web
 
@@ -136,7 +136,7 @@ jobs:
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - id: deploy
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -145,13 +145,13 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: dist
           pattern: rpgmatch-*
       - name: Package artifacts
         working-directory: dist
         run: for d in */; do (cd "$d" && zip -qr "../${d%/}.zip" .); done
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           files: dist/*.zip

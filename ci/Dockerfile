@@ -1,13 +1,16 @@
 ARG GODOT_VERSION=4.7
 ARG GODOT_RELEASE=stable
+ARG DEBIAN_FRONTEND=noninteractive
 
 # Runtime dependencies: Godot, export script, actions/checkout.
 FROM ubuntu:24.04 AS runtime
+ARG DEBIAN_FRONTEND
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates git libfontconfig1 python3 \
  && rm -rf /var/lib/apt/lists/*
 
 FROM ubuntu:24.04 AS downloads
+ARG DEBIAN_FRONTEND
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates curl unzip \
  && rm -rf /var/lib/apt/lists/*
