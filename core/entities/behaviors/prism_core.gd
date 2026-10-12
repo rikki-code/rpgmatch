@@ -28,9 +28,11 @@ func spawn_similar_tile() -> Tile:
 func can_combine_with_core(_other: TriggerCore) -> bool:
 	return true
 
-func _do_trigger(_self_tile: Tile, cell: GridCell, board: BoardGraph) -> Array[Effect]:
-	var color := _dominant_color(board)
-	return [EffectPrismBlast.new(cell, _cells_with_color(board, color), color)]
+func _do_trigger(self_tile: Tile, cell: GridCell, board: BoardGraph) -> Array[Effect]:
+	return [EffectPrismBlast.new(cell, blast_cells(self_tile, cell, board), _dominant_color(board))]
+
+func blast_cells(_self_tile: Tile, _cell: GridCell, board: BoardGraph) -> Array[GridCell]:
+	return _cells_with_color(board, _dominant_color(board))
 
 func _do_combine_with(other: TriggerCore, cell: GridCell, board: BoardGraph) -> Array[Effect]:
 	if other is PrismCore:

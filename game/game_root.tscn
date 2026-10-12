@@ -11,6 +11,7 @@
 [ext_resource type="Script" uid="uid://bdyn8hm78ww13" path="res://view/dev/fps_counter.gd" id="9"]
 [ext_resource type="Script" path="res://view/hud/score_hud.gd" id="10"]
 [ext_resource type="Script" path="res://view/hud/quest_hud.gd" id="11"]
+[ext_resource type="Script" path="res://view/battle/battle_view.gd" id="12"]
 
 [node name="GameRoot" type="Node3D" unique_id=1180910243]
 script = ExtResource("1")
@@ -105,3 +106,14 @@ offset_bottom = 52.0
 theme_override_colors/font_color = Color(1, 0.85, 0.2, 1)
 horizontal_alignment = 2
 text = ""
+
+[node name="BattleView" type="Control" parent="UILayer" unique_id=55501239]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("12")

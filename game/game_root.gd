@@ -12,6 +12,13 @@ var turn_manager: TurnManager
 var swap_controller: SwapController
 var detonate_controller: DetonateController
 var quest_manager: QuestManager
+var current_mode: GameMode
+var available_modes: Array[GameMode] = [InfiniteMode.new(), BattleMode.new()]
+var board_view: BoardView3D
+var editor_mode_controller: EditorModeController
+var score_hud: ScoreHud
+var quest_hud: QuestHud
+var battle_view: BattleView
 
 func _ready() -> void:
 	var params := world_gen_params if world_gen_params != null else WorldGenParams.new()
@@ -21,7 +28,9 @@ func _ready() -> void:
 	ctx.resolver = EffectResolver.new(board)
 	ctx.score_tracker = ScoreTracker.new(ctx.resolver)
 	swap_controller = SwapController.new(ctx)
+	ctx.swap_controller = swap_controller
 	detonate_controller = DetonateController.new(ctx)
+	ctx.detonate_controller = detonate_controller
 
 	quest_manager = QuestManager.new(board, ctx.resolver, RandomQuestGenerator.new())
 	quest_manager.fill_from_generator()
@@ -29,23 +38,18 @@ func _ready() -> void:
 		ctx.score_tracker.award_bonus(quest.definition.target_count * QUEST_REWARD_PER_TILE)
 	)
 
-	var phases: Array[TurnPhase] = [
-		PhasePlayerInput.new(),
-		PhaseEnvironmentStub.new(),
-		PhaseEnemyStub.new(),
-		PhasePhysicsResolve.new(),
-	]
-	turn_manager = TurnManager.new(ctx, phases)
+	current_mode = available_modes[0]
+	turn_manager = TurnManager.new(ctx, current_mode.build_phases(ctx))
 	ctx.turn_manager = turn_manager
 
-	var board_view: BoardView3D = $BoardView3D
+	board_view = $BoardView3D
 	board_view.setup(board)
 	ctx.animation_driver = BoardViewAnimationDriver.new(board_view)
 	ctx.resolver.effect_applied.connect(func(effect: Effect) -> void: board_view.refresh(effect))
-	swap_controller.swap_applied.connect(func(_a: GridCell, _b: GridCell) -> void: board_view.refresh())
+	swap_controller.swap_applied.connect(func(_a: GridCell, _b: GridCell) -> void: _after_board_move())
 	swap_controller.swap_rejected.connect(func(_a: GridCell, _b: GridCell) -> void: board_view.refresh())
-	swap_controller.tiles_combined.connect(func(_a: GridCell, _b: GridCell) -> void: board_view.refresh())
-	detonate_controller.detonated.connect(func(_cell: GridCell) -> void: board_view.refresh())
+	swap_controller.tiles_combined.connect(func(_a: GridCell, _b: GridCell) -> void: _after_board_move())
+	detonate_controller.detonated.connect(func(_cell: GridCell) -> void: _after_board_move())
 
 	var camera: Camera3D = $Camera3D
 	_place_camera(camera)
@@ -54,7 +58,7 @@ func _ready() -> void:
 	var input_controller: InputController = $InputController
 	input_controller.setup(camera, board_view, board, swap_controller, detonate_controller)
 
-	var editor_mode_controller: EditorModeController = $EditorModeController
+	editor_mode_controller = $EditorModeController
 	editor_mode_controller.setup(camera, board_view, ctx)
 	var editor_grid_overlay: EditorGridOverlay = $EditorGridOverlay
 	editor_grid_overlay.setup(board)
@@ -65,11 +69,12 @@ func _ready() -> void:
 		editor_grid_overlay.set_active(active)
 		editor_toolbar.set_panel_visible(active)
 		if active:
-			editor_toolbar.setup(editor_mode_controller.cell_catalog, editor_mode_controller.tile_catalog)
+			editor_toolbar.setup(editor_mode_controller.cell_catalog, editor_mode_controller.tile_catalog, available_modes)
 	)
 	editor_toolbar.cell_kind_selected.connect(editor_mode_controller.select_cell_kind)
 	editor_toolbar.remove_cell_selected.connect(editor_mode_controller.select_remove_cell)
 	editor_toolbar.tile_selected.connect(editor_mode_controller.select_tile)
+	editor_toolbar.game_mode_selected.connect(switch_mode)
 
 	var idle_throttle_controller: IdleThrottleController = $IdleThrottleController
 	idle_throttle_controller.setup(ctx)
@@ -77,12 +82,51 @@ func _ready() -> void:
 	var fps_counter: FpsCounter = $UILayer/FpsCounter
 	fps_counter.set_active(dev_mode)
 
-	var score_hud: ScoreHud = $UILayer/ScoreHud
+	score_hud = $UILayer/ScoreHud
 	score_hud.setup(ctx.score_tracker)
-	var quest_hud: QuestHud = $UILayer/QuestHud
+	quest_hud = $UILayer/QuestHud
 	quest_hud.setup(quest_manager)
+	battle_view = $UILayer/BattleView
+	battle_view.restart_requested.connect(func() -> void: switch_mode(current_mode))
+	battle_view.exit_requested.connect(func() -> void: switch_mode(available_modes[0]))
 
 	turn_manager.start()
+
+## Rebuilds the TurnManager from a different mode, reusing the same board/
+## resolver/score. Refused mid-turn (same gate the world editor uses) unless
+## a battle already ended, so no phase gets orphaned halfway through.
+func switch_mode(mode: GameMode) -> bool:
+	var battle_finished := ctx.battle != null and ctx.battle.ended
+	if not ctx.awaiting_player_input and not battle_finished:
+		return false
+	current_mode = mode
+	turn_manager = TurnManager.new(ctx, mode.build_phases(ctx))
+	ctx.turn_manager = turn_manager
+	score_hud.visible = mode.shows_score_hud()
+	quest_hud.visible = mode.shows_quest_hud()
+	battle_view.visible = mode.shows_battle_view()
+	if ctx.battle != null:
+		battle_view.setup(ctx)
+		ctx.battle.ai_move_chosen.connect(_show_ai_move)
+	# With the editor open, its own exit (notify_phase_done) starts the new
+	# manager — starting it here too would skip the first turn.
+	if not editor_mode_controller.active:
+		turn_manager.start()
+	return true
+
+## Highlights what an AI character is about to swap/match/detonate first.
+func _show_ai_move(cell_a: GridCell, cell_b: GridCell) -> void:
+	if cell_b == null:
+		board_view.set_match_preview([cell_a.occupant])
+		return
+	var tiles: Array = swap_controller.preview_match(cell_a, cell_b)
+	if tiles.is_empty():
+		tiles = [cell_a.occupant, cell_b.occupant]
+	board_view.set_match_preview(tiles)
+
+func _after_board_move() -> void:
+	board_view.set_match_preview([])
+	board_view.refresh()
 
 const QUEST_REWARD_PER_TILE := 5
 

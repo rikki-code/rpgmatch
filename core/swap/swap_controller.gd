@@ -22,6 +22,11 @@ func _init(p_ctx: TurnContext) -> void:
 func try_swap(cell_a: GridCell, cell_b: GridCell) -> bool:
 	if not ctx.awaiting_player_input:
 		return false
+	return await perform_swap(cell_a, cell_b)
+
+## try_swap minus the human-input gate — an AI character's move (see
+## PhaseCharacterInput) goes through here while human input stays locked.
+func perform_swap(cell_a: GridCell, cell_b: GridCell) -> bool:
 	if not cell_a.neighbors.values().has(cell_b):
 		return false
 	if not (cell_a.occupant is Tile) or not (cell_b.occupant is Tile):

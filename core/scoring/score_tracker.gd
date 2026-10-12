@@ -11,6 +11,9 @@ signal combo_reset
 
 var total_score: int = 0
 var combo_multiplier: int = 0
+## Points earned since the last reset_combo — battle mode reads this to size
+## the player's combat action (see PhaseResolvePlayerCombat).
+var turn_points: int = 0
 
 func _init(resolver: EffectResolver) -> void:
 	resolver.effect_applied.connect(_on_effect_applied)
@@ -18,6 +21,7 @@ func _init(resolver: EffectResolver) -> void:
 ## Called at PhasePlayerInput.enter — fresh combo chain per turn.
 func reset_combo() -> void:
 	combo_multiplier = 0
+	turn_points = 0
 	combo_reset.emit()
 
 ## Called before resolving each destructive batch (match wave, manual/combine trigger).
@@ -44,4 +48,5 @@ func _on_effect_applied(effect: Effect) -> void:
 	var multiplier := maxi(combo_multiplier, 1)
 	var amount := entity.score_value() * multiplier
 	total_score += amount
+	turn_points += amount
 	score_awarded.emit(amount, multiplier, cell, entity)

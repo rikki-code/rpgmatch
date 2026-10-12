@@ -18,6 +18,10 @@ func _init(p_ctx: TurnContext) -> void:
 func try_detonate(cell: GridCell) -> bool:
 	if not ctx.awaiting_player_input:
 		return false
+	return await perform_detonate(cell)
+
+## try_detonate minus the human-input gate — used by an AI character's move.
+func perform_detonate(cell: GridCell) -> bool:
 	if not (cell.occupant is Tile):
 		return false
 	var tile: Tile = cell.occupant

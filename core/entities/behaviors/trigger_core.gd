@@ -42,6 +42,12 @@ func trigger(self_tile: Tile, cell: GridCell, board: BoardGraph) -> Array[Effect
 func _do_trigger(_self_tile: Tile, _cell: GridCell, _board: BoardGraph) -> Array[Effect]:
 	return []
 
+## Cells a detonation at `cell` would hit — pure, no mutation. _do_trigger
+## builds its blast from this too, so an AI preview (see AiMovePicker) never
+## disagrees with the real explosion.
+func blast_cells(_self_tile: Tile, _cell: GridCell, _board: BoardGraph) -> Array[GridCell]:
+	return []
+
 func can_combine_with_core(_other: TriggerCore) -> bool:
 	return false
 

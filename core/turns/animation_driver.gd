@@ -7,3 +7,7 @@ extends RefCounted
 
 func await_settle() -> void:
 	pass
+
+## A readable beat (e.g. an AI "thinking" before its move). No-op headless.
+func await_delay(_seconds: float) -> void:
+	pass

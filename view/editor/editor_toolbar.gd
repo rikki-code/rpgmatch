@@ -12,18 +12,21 @@ extends Control
 signal cell_kind_selected(entry: EditorCellCatalog.Entry)
 signal remove_cell_selected
 signal tile_selected(entry: EditorTileCatalog.Entry)
+signal game_mode_selected(mode: GameMode)
 
 @onready var _panel: Control = $Panel
 @onready var _cell_kind_option: OptionButton = $Panel/Toolbar/CellKindOption
 @onready var _remove_cell_button: Button = $Panel/Toolbar/RemoveCellButton
 @onready var _normal_option: OptionButton = $Panel/Toolbar/NormalTilesOption
 @onready var _special_option: OptionButton = $Panel/Toolbar/SpecialTilesOption
+@onready var _mode_option: OptionButton = $Panel/Toolbar/ModeOption
 @onready var _icon_viewport: SubViewport = $IconViewport
 
 var _tile_view := TileView.new()
 var _cell_entries: Array[EditorCellCatalog.Entry] = []
 var _normal_entries: Array[EditorTileCatalog.Entry] = []
 var _special_entries: Array[EditorTileCatalog.Entry] = []
+var _modes: Array[GameMode] = []
 ## setup() is called lazily from game_root's mode_changed handler.
 var _populated: bool = false
 
@@ -37,11 +40,12 @@ func _ready() -> void:
 	_remove_cell_button.pressed.connect(_on_remove_cell_pressed)
 	_normal_option.get_popup().id_pressed.connect(_on_normal_tile_selected)
 	_special_option.get_popup().id_pressed.connect(_on_special_tile_selected)
+	_mode_option.get_popup().id_pressed.connect(_on_mode_selected)
 
 func set_panel_visible(visible_now: bool) -> void:
 	_panel.visible = visible_now
 
-func setup(cell_catalog: Array[EditorCellCatalog.Entry], tile_catalog: Array[EditorTileCatalog.Entry]) -> void:
+func setup(cell_catalog: Array[EditorCellCatalog.Entry], tile_catalog: Array[EditorTileCatalog.Entry], modes: Array[GameMode] = []) -> void:
 	if _populated:
 		return
 	_populated = true
@@ -63,6 +67,12 @@ func setup(cell_catalog: Array[EditorCellCatalog.Entry], tile_catalog: Array[Edi
 
 	await _populate_tiles(_normal_option, _normal_entries)
 	await _populate_tiles(_special_option, _special_entries)
+
+	_modes = modes
+	_mode_option.clear()
+	for i in range(_modes.size()):
+		_mode_option.add_item(_modes[i].display_name(), i)
+
 	_set_active_tool(Tool.CELL_KIND)
 	_icon_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 
@@ -129,3 +139,8 @@ func _on_special_tile_selected(id: int) -> void:
 	_special_option.select(id)
 	_set_active_tool(Tool.SPECIAL_TILE)
 	tile_selected.emit(_special_entries[id])
+
+## Not a placement tool like the others above — doesn't touch _set_active_tool.
+func _on_mode_selected(id: int) -> void:
+	_mode_option.select(id)
+	game_mode_selected.emit(_modes[id])

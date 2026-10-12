@@ -40,19 +40,20 @@ func visual_kind(_self_tile: Tile) -> StringName:
 func quest_kind_id(_self_tile: Tile) -> StringName:
 	return &"arrow_blaster"
 
-func _do_trigger(_self_tile: Tile, cell: GridCell, board: BoardGraph) -> Array[Effect]:
-	var cells: Array[GridCell]
+func _do_trigger(self_tile: Tile, cell: GridCell, board: BoardGraph) -> Array[Effect]:
+	return [EffectArrowBlast.new(cell, axis, blast_cells(self_tile, cell, board))]
+
+func blast_cells(_self_tile: Tile, cell: GridCell, board: BoardGraph) -> Array[GridCell]:
 	match axis:
 		Axis.ROW:
-			cells = board.cells_within_row_band(cell, extra_lines)
+			return board.cells_within_row_band(cell, extra_lines)
 		Axis.COLUMN:
-			cells = board.cells_within_column_band(cell, extra_lines)
-		_:
-			cells = board.cells_within_row_band(cell, extra_lines)
-			for column_cell in board.cells_within_column_band(cell, extra_lines):
-				if not cells.has(column_cell):
-					cells.append(column_cell)
-	return [EffectArrowBlast.new(cell, axis, cells)]
+			return board.cells_within_column_band(cell, extra_lines)
+	var cells := board.cells_within_row_band(cell, extra_lines)
+	for column_cell in board.cells_within_column_band(cell, extra_lines):
+		if not cells.has(column_cell):
+			cells.append(column_cell)
+	return cells
 
 func can_combine_with_core(other: TriggerCore) -> bool:
 	return other is ArrowBlasterCore or other is BombCore or other is PrismCore

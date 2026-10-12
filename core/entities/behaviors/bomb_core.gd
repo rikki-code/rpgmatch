@@ -24,11 +24,13 @@ func visual_kind(_self_tile: Tile) -> StringName:
 func quest_kind_id(_self_tile: Tile) -> StringName:
 	return &"bomb"
 
-func _do_trigger(_self_tile: Tile, cell: GridCell, board: BoardGraph) -> Array[Effect]:
+func _do_trigger(self_tile: Tile, cell: GridCell, board: BoardGraph) -> Array[Effect]:
+	return [EffectBombBlast.new(cell, blast_cells(self_tile, cell, board))]
+
+func blast_cells(_self_tile: Tile, cell: GridCell, board: BoardGraph) -> Array[GridCell]:
 	if shape == Shape.MANHATTAN:
-		return [EffectBombBlast.new(cell, board.cells_within_manhattan_radius(cell, radius))]
-	else:
-		return [EffectBombBlast.new(cell, board.cells_within_square_radius(cell, radius))]
+		return board.cells_within_manhattan_radius(cell, radius)
+	return board.cells_within_square_radius(cell, radius)
 
 func can_combine_with_core(other: TriggerCore) -> bool:
 	return other is BombCore or other is ArrowBlasterCore or other is PrismCore

@@ -10,6 +10,11 @@ var awaiting_player_input: bool = false
 ## Defaults to an instant no-op; game_root swaps in a view-backed driver.
 var animation_driver: AnimationDriver = AnimationDriver.new()
 var score_tracker: ScoreTracker
+## Lets a phase make a board move itself (AI turn, see PhaseCharacterInput).
+var swap_controller: SwapController
+var detonate_controller: DetonateController
+## Null outside battle mode — battle-only phases assume it's set when present.
+var battle: BattleContext
 
 func _init(p_board: BoardGraph) -> void:
 	board = p_board

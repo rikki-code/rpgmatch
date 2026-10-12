@@ -69,6 +69,11 @@ custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 text = "Special Tiles"
 
+[node name="ModeOption" type="OptionButton" parent="Panel/Toolbar"]
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+text = "Mode"
+
 [node name="IconViewport" type="SubViewport" parent="."]
 own_world_3d = true
 transparent_bg = true

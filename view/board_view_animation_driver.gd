@@ -11,3 +11,6 @@ func _init(p_view: BoardView3D) -> void:
 
 func await_settle() -> void:
 	await view.await_settled()
+
+func await_delay(seconds: float) -> void:
+	await view.get_tree().create_timer(seconds).timeout
