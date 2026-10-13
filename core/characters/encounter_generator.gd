@@ -37,10 +37,12 @@ static func _generate(catalog: Array[UnitType], cost_factor: int, side: Characte
 		budget -= choice.cost * cost_factor
 
 	var units: Array[Character] = []
+	var numbered := {}  # UnitType -> copies named so far
 	for type in picked:
-		var unit := type.roll(level, side, rng)
+		var unit := type.roll(level, side, AiController.new(AiController.skill_for_level(level)), rng)
 		if picked.count(type) > 1:
-			unit.display_name += " %d" % (units.filter(func(u: Character) -> bool: return u.display_name.begins_with(type.display_name)).size() + 1)
+			numbered[type] = numbered.get(type, 0) + 1
+			unit.display_name += " %d" % numbered[type]
 		units.append(unit)
 	return units
 

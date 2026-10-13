@@ -31,7 +31,7 @@ static func generate(params: WorldGenParams) -> BoardGraph:
 
 static func _place_pits(graph: BoardGraph, params: WorldGenParams, rng: RandomNumberGenerator) -> void:
 	var pit_count: int = clampi(params.pit_count, 0, graph.cells.size())
-	var candidates: Array = _shuffled(graph.all_cells(), rng)
+	var candidates: Array = shuffled(graph.all_cells(), rng)
 	for i in range(pit_count):
 		var cell: GridCell = candidates[i]
 		cell.kind = PitCellKind.new()
@@ -81,7 +81,7 @@ static func _random_colors(count: int, rng: RandomNumberGenerator) -> Array[int]
 	for color in range(BoardGraph.MAX_COLORS):
 		all.append(color)
 	var picked: Array[int] = []
-	for color in _shuffled(all, rng).slice(0, clampi(count, 1, BoardGraph.MAX_COLORS)):
+	for color in shuffled(all, rng).slice(0, clampi(count, 1, BoardGraph.MAX_COLORS)):
 		picked.append(color)
 	picked.sort()
 	return picked
@@ -89,7 +89,8 @@ static func _random_colors(count: int, rng: RandomNumberGenerator) -> Array[int]
 static func _make_tile(color: int) -> Tile:
 	return Tile.make_normal(color)
 
-static func _shuffled(array: Array, rng: RandomNumberGenerator) -> Array:
+## Seeded (board rng), unlike Array.shuffle() which uses the global RNG.
+static func shuffled(array: Array, rng: RandomNumberGenerator) -> Array:
 	var result := array.duplicate()
 	for i in range(result.size() - 1, 0, -1):
 		var j := rng.randi_range(0, i)

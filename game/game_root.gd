@@ -74,12 +74,14 @@ func _ready() -> void:
 		editor_grid_overlay.set_active(active)
 		editor_toolbar.set_panel_visible(active)
 		if active:
-			editor_toolbar.setup(editor_mode_controller.cell_catalog, editor_mode_controller.tile_catalog, available_modes, current_mode)
+			editor_toolbar.setup(editor_mode_controller.cell_catalog, editor_mode_controller.tile_catalog, available_modes)
+			editor_toolbar.show_state(current_mode, GameSession.battle_level)
 	)
 	editor_toolbar.cell_kind_selected.connect(editor_mode_controller.select_cell_kind)
 	editor_toolbar.remove_cell_selected.connect(editor_mode_controller.select_remove_cell)
 	editor_toolbar.tile_selected.connect(editor_mode_controller.select_tile)
 	editor_toolbar.game_mode_selected.connect(switch_mode)
+	editor_toolbar.battle_level_selected.connect(_set_battle_level)
 
 	var idle_throttle_controller: IdleThrottleController = $IdleThrottleController
 	idle_throttle_controller.setup(ctx)
@@ -147,6 +149,13 @@ func _apply_pending_mode() -> void:
 	var mode := _pending_mode
 	_pending_mode = null
 	_apply_mode(mode)
+
+## Rebuilds the battle at `level` on the current board (an edited board is
+## kept — only Next battle/Reset regenerate it for the level).
+func _set_battle_level(level: int) -> void:
+	GameSession.battle_level = level
+	if current_mode == battle_mode:
+		switch_mode(battle_mode)
 
 ## Reloading the scene is the reset: every module gets rebuilt from GameSession.
 func _restart() -> void:

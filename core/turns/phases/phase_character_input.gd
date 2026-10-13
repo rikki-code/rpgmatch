@@ -20,7 +20,7 @@ func execute(ctx: TurnContext) -> void:
 	if actor.controller.is_human():
 		return
 	await ctx.animation_driver.await_delay(AI_THINK_SECONDS)
-	ctx.battle.select_action(actor.controller.choose_action_type(actor, ctx.battle))
+	ctx.battle.select_action(actor.controller.choose_action(actor, ctx.battle))
 	var rng := ctx.battle.resolver.rng
 	var move := actor.controller.choose_move(ctx.board, ctx.battle, rng)
 	if move == null:

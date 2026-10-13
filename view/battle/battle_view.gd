@@ -69,23 +69,20 @@ func _on_turn_started(character: Character) -> void:
 	for other: Character in _cards:
 		_cards[other].set_active(other == character, other.controller.is_human())
 	if character.controller.is_human():
-		_retarget_for(BattleContext.ActionType.ATTACK)
-		_turn_label.text = "Your turn: Attack/Defend, click any card as the target, then swap tiles"
+		_turn_label.text = "Your turn: pick an action, click any card as the target, then swap tiles"
 	else:
 		_turn_label.text = "%s's turn..." % character.display_name
 	_update_target_marks()
 
-func _on_action_selected(character: Character, type: BattleContext.ActionType) -> void:
-	_cards[character].set_intent(type)
+func _on_action_selected(character: Character, action: BattleAction) -> void:
 	_update_target_marks()
-	if not character.controller.is_human():
-		var verb := "attack" if type == BattleContext.ActionType.ATTACK else "defend"
-		_turn_label.text = "%s prepares to %s" % [character.display_name, verb]
+	if not character.controller.is_human() and _battle.pending_target != null:
+		_turn_label.text = "%s prepares to %s %s" % [character.display_name, action.display_name().to_lower(), _battle.pending_target.display_name]
 
 func _on_target_selected(_target: Character) -> void:
 	_update_target_marks()
 
-func _on_score_awarded(_amount: int, _multiplier: int, _cell: GridCell, _entity: BoardEntity) -> void:
+func _on_score_awarded(_amount: int, _wave: int, _cell: GridCell, _entity: BoardEntity) -> void:
 	if not visible or _battle == null or _battle.active_character == null:
 		return
 	var actor := _battle.active_character
@@ -106,28 +103,15 @@ func _on_shield_gained(character: Character, amount: int) -> void:
 	else:
 		_turn_label.text = "%s shields %s (+%d)" % [actor.display_name, character.display_name, amount]
 
-## On the human's turn: red border = attack target, blue = shield target.
+## Target border (red = attack-like, blue = own-side action) + the active card's "Action -> target" line.
 func _update_target_marks() -> void:
-	var actor := _battle.active_character
-	var human_turn := actor != null and actor.controller.is_human() and not _battle.ended
-	var defending := _battle.pending_action == BattleContext.ActionType.DEFEND
+	var action := _battle.pending_action
+	var own_side := action != null and action.targets_own_side()
 	for character: Character in _cards:
-		var marked := human_turn and character == _battle.human_target
-		_cards[character].set_targeted(marked and not defending)
-		_cards[character].set_shield_targeted(marked and defending)
-
-## Sensible default when the action changes: attack -> an opponent, defend
-## -> self. A card click afterwards can still pick anyone (friendly fire).
-func _retarget_for(type: BattleContext.ActionType) -> void:
+		_cards[character].set_targeted(not _battle.ended and character == _battle.pending_target, own_side)
 	var actor := _battle.active_character
-	var target := _battle.human_target
-	var valid := target != null and target.is_alive()
-	if type == BattleContext.ActionType.ATTACK and (not valid or target.side == actor.side):
-		var first := _battle.first_living(_battle.opponents_of(actor))
-		if first != null:
-			_battle.select_target(first)
-	elif type == BattleContext.ActionType.DEFEND and (not valid or target.side != actor.side):
-		_battle.select_target(actor)
+	if actor != null and action != null:
+		_cards[actor].set_intent(action, _battle.pending_target)
 
 func _on_battle_ended(victory: bool) -> void:
 	for character: Character in _cards:
@@ -138,19 +122,21 @@ func _on_battle_ended(victory: bool) -> void:
 	_overlay.visible = true
 
 func _on_card_clicked(character: Character) -> void:
-	var actor := _battle.active_character
-	if _ctx.awaiting_player_input and actor != null and actor.controller.is_human():
+	if _ctx.awaiting_player_input and _is_human_turn():
 		_battle.select_target(character)
 
-func _on_action_picked(type: BattleContext.ActionType) -> void:
-	if _ctx.awaiting_player_input and _battle.active_character.controller.is_human():
-		_retarget_for(type)
-		_battle.select_action(type)
+func _on_action_picked(action: BattleAction) -> void:
+	if _ctx.awaiting_player_input and _is_human_turn():
+		_battle.select_action(action)
+
+func _is_human_turn() -> bool:
+	var actor := _battle.active_character
+	return actor != null and actor.controller.is_human() and not _battle.ended
 
 func _add_card(character: Character, column: VBoxContainer) -> void:
 	var card := CharacterCard.new()
 	column.add_child(card)
-	card.setup(character)
+	card.setup(character, _battle.actions)
 	card.clicked.connect(_on_card_clicked)
 	card.action_picked.connect(_on_action_picked)
 	_cards[character] = card

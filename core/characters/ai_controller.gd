@@ -1,13 +1,10 @@
-## Plays the board like the player does (MoveFinder), but only finds the
-## best move `skill` of the time — grows with level, so early bots blunder.
-## Attacks the opponent with the least hp + shield `skill` of the time,
-## otherwise a random one (never its own side). Shields an ally (or itself)
-## that's about to die — noticing it `skill` of the time.
+## Plays like the player does, but only makes the smart call `skill` of the
+## time — grows with level, so early bots blunder: the best move
+## (MoveFinder), the most urgent action (BattleAction.ai_priority), the best
+## target; otherwise a random move / the default action / a random target.
 class_name AiController
 extends CharacterController
 
-## HP + shield below this share of max HP = "about to die".
-const DANGER_RATIO := 0.3
 const BASE_SKILL := 0.3
 const SKILL_PER_LEVEL := 0.06
 const MAX_SKILL := 0.95
@@ -18,36 +15,23 @@ func _init(p_skill: float = MAX_SKILL) -> void:
 	skill = p_skill
 
 static func skill_for_level(level: int) -> float:
-	return minf(BASE_SKILL + SKILL_PER_LEVEL * (level - 1), MAX_SKILL)
+	return LevelCurve.linear(BASE_SKILL, SKILL_PER_LEVEL, level, MAX_SKILL)
 
 func choose_move(board: BoardGraph, battle: BattleContext, rng: RandomNumberGenerator) -> MoveFinder.Move:
 	return MoveFinder.pick_move(board, skill, rng, battle.power_multiplier)
 
-func choose_action_type(actor: Character, battle: BattleContext) -> BattleContext.ActionType:
-	var wounded := choose_shield_target(actor, battle)
-	if _effective_hp_ratio(wounded) < DANGER_RATIO and battle.resolver.rng.randf() < skill:
-		return BattleContext.ActionType.DEFEND
-	return BattleContext.ActionType.ATTACK
+func choose_action(actor: Character, battle: BattleContext) -> BattleAction:
+	var best: BattleAction = battle.actions[0]
+	for action in battle.actions:
+		if action.ai_priority(actor, battle) > best.ai_priority(actor, battle):
+			best = action
+	return best if _smart(battle) else battle.actions[0]
 
-func choose_shield_target(actor: Character, battle: BattleContext) -> Character:
-	var best := actor
-	for ally in battle.allies_of(actor):
-		if ally.is_alive() and _effective_hp_ratio(ally) < _effective_hp_ratio(best):
-			best = ally
-	return best
+func choose_target(actor: Character, action: BattleAction, battle: BattleContext) -> Character:
+	if _smart(battle):
+		return action.best_target(actor, battle)
+	var candidates := action.candidates(actor, battle)
+	return null if candidates.is_empty() else candidates[battle.resolver.rng.randi_range(0, candidates.size() - 1)]
 
-static func _effective_hp_ratio(character: Character) -> float:
-	return float(character.hp + character.shield) / character.max_hp
-
-func choose_target(actor: Character, battle: BattleContext) -> Character:
-	var living := battle.opponents_of(actor).filter(func(c: Character) -> bool: return c.is_alive())
-	if living.is_empty():
-		return null
-	var rng := battle.resolver.rng
-	if rng.randf() >= skill:
-		return living[rng.randi_range(0, living.size() - 1)]
-	var best: Character = living[0]
-	for character: Character in living:
-		if character.hp + character.shield < best.hp + best.shield:
-			best = character
-	return best
+func _smart(battle: BattleContext) -> bool:
+	return battle.resolver.rng.randf() < skill

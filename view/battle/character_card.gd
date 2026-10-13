@@ -1,12 +1,11 @@
 ## One character's card: name, HP bar, shield, live turn power while it's
-## their turn, Attack/Defend menu (human, own turn only), floating
-## damage/shield numbers. Clicking the card emits `clicked` (attack target
-## on an enemy, shield target on an ally).
+## their turn, a button per BattleAction (human, own turn only), floating
+## damage/shield numbers. Clicking the card emits `clicked` (target pick).
 class_name CharacterCard
 extends PanelContainer
 
 signal clicked(character: Character)
-signal action_picked(type: BattleContext.ActionType)
+signal action_picked(action: BattleAction)
 
 const BORDER_IDLE := Color(0.3, 0.3, 0.36)
 const BORDER_ACTIVE := Color(1.0, 0.85, 0.2)
@@ -23,14 +22,15 @@ var _hp_label: Label
 var _shield_label: Label
 var _intent_label: Label
 var _power_label: Label
-var _actions: HBoxContainer
-var _attack_button: Button
-var _defend_button: Button
+var _action_bar: HBoxContainer
+var _action_buttons := {}  # BattleAction -> Button
+var _default_action: BattleAction
 var _active := false
 var _targeted := false
-var _shield_targeted := false
+## Target of an own-side action (shield) — drawn in the shield color.
+var _targeted_own_side := false
 
-func setup(p_character: Character) -> void:
+func setup(p_character: Character, actions: Array[BattleAction]) -> void:
 	character = p_character
 	custom_minimum_size = Vector2(230, 0)
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -65,11 +65,12 @@ func setup(p_character: Character) -> void:
 	_power_label = _make_label(box, 20)
 	_power_label.add_theme_color_override("font_color", BORDER_ACTIVE)
 
-	_actions = HBoxContainer.new()
-	_actions.add_theme_constant_override("separation", 8)
-	box.add_child(_actions)
-	_attack_button = _make_action_button("Attack", BattleContext.ActionType.ATTACK)
-	_defend_button = _make_action_button("Defend", BattleContext.ActionType.DEFEND)
+	_action_bar = HBoxContainer.new()
+	_action_bar.add_theme_constant_override("separation", 8)
+	box.add_child(_action_bar)
+	_default_action = actions[0]
+	for action in actions:
+		_make_action_button(action)
 
 	gui_input.connect(_on_gui_input)
 	resized.connect(func() -> void: pivot_offset = size / 2.0)
@@ -87,31 +88,27 @@ func refresh() -> void:
 ## `human` only matters for the active card: it gets the action menu.
 func set_active(active: bool, human: bool) -> void:
 	_active = active
-	_actions.visible = active and human
+	_action_bar.visible = active and human
 	_intent_label.visible = active
 	_power_label.visible = active
 	if active:
-		set_intent(BattleContext.ActionType.ATTACK)
+		set_intent(_default_action, null)
 		set_power(0, 0)
 	_update_border()
 
 func set_actions_enabled(enabled: bool) -> void:
-	_attack_button.disabled = not enabled
-	_defend_button.disabled = not enabled
+	for button: Button in _action_buttons.values():
+		button.disabled = not enabled
 
-func set_targeted(targeted: bool) -> void:
+func set_targeted(targeted: bool, own_side := false) -> void:
 	_targeted = targeted
+	_targeted_own_side = own_side
 	_update_border()
 
-func set_shield_targeted(targeted: bool) -> void:
-	_shield_targeted = targeted
-	_update_border()
-
-func set_intent(type: BattleContext.ActionType) -> void:
-	var attacking := type == BattleContext.ActionType.ATTACK
-	_intent_label.text = "Action: Attack" if attacking else "Action: Defend"
-	_attack_button.modulate = BORDER_ACTIVE if attacking else Color.WHITE
-	_defend_button.modulate = Color.WHITE if attacking else SHIELD_COLOR
+func set_intent(action: BattleAction, target: Character) -> void:
+	_intent_label.text = action.display_name() + (" → %s" % target.display_name if target != null else "")
+	for other: BattleAction in _action_buttons:
+		_action_buttons[other].modulate = BORDER_ACTIVE if other == action else Color.WHITE
 
 func set_power(power: int, combo: float) -> void:
 	_power_label.text = "Power %d" % power + ("   x%.1f combo" % combo if combo > 1.0 else "")
@@ -137,9 +134,7 @@ func _update_border() -> void:
 	if _active:
 		_style.border_color = BORDER_ACTIVE
 	elif _targeted:
-		_style.border_color = BORDER_TARGET
-	elif _shield_targeted:
-		_style.border_color = SHIELD_COLOR
+		_style.border_color = SHIELD_COLOR if _targeted_own_side else BORDER_TARGET
 	else:
 		_style.border_color = BORDER_IDLE
 
@@ -167,13 +162,13 @@ func _make_label(parent: Control, font_size: int) -> Label:
 	parent.add_child(label)
 	return label
 
-func _make_action_button(text: String, type: BattleContext.ActionType) -> Button:
+func _make_action_button(action: BattleAction) -> void:
 	var button := Button.new()
-	button.text = text
+	button.text = action.display_name()
 	button.custom_minimum_size = Vector2(95, 36)
-	button.pressed.connect(func() -> void: action_picked.emit(type))
-	_actions.add_child(button)
-	return button
+	button.pressed.connect(func() -> void: action_picked.emit(action))
+	_action_bar.add_child(button)
+	_action_buttons[action] = button
 
 func _on_gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:

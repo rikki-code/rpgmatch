@@ -74,6 +74,18 @@ custom_minimum_size = Vector2(140, 0)
 layout_mode = 2
 text = "Mode"
 
+[node name="LevelLabel" type="Label" parent="Panel/Toolbar"]
+layout_mode = 2
+text = "Battle level"
+
+[node name="LevelSpin" type="SpinBox" parent="Panel/Toolbar"]
+custom_minimum_size = Vector2(110, 0)
+layout_mode = 2
+min_value = 1.0
+max_value = 99.0
+value = 1.0
+rounded = true
+
 [node name="IconViewport" type="SubViewport" parent="."]
 own_world_3d = true
 transparent_bg = true

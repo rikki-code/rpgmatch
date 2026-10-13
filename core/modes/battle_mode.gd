@@ -7,11 +7,6 @@
 class_name BattleMode
 extends GameMode
 
-const HERO_BASE_HP := 100
-const HERO_HP_GROWTH_PER_LEVEL := 0.12
-const HERO_BASE_POWER := 0.2
-const HERO_POWER_GROWTH_PER_LEVEL := 0.08
-
 ## Board at level 1: small, no holes, 3 colors; grows up to the menu settings.
 const START_WIDTH := 6
 const START_HEIGHT := 6
@@ -19,7 +14,7 @@ const START_COLORS := 3
 const LEVELS_PER_WIDTH := 2
 const LEVELS_PER_HEIGHT := 3
 const LEVELS_PER_COLOR := 2
-const PITS_PER_LEVEL := 1.0
+const LEVELS_PER_PIT := 1
 ## Pits never take more than this share of the board.
 const MAX_PIT_RATIO := 0.15
 ## Few colors = self-feeding cascades: measured median points per turn
@@ -33,13 +28,15 @@ const COMBO_STEP_PER_LEVEL := 0.05
 const MAX_COMBO_STEP := 1.0
 
 var level := 1
+## Fixed level-1 stats, grows faster than recruitable units.
+var hero_type := UnitType.new("Hero", 0, 1, Vector2i(100, 100), Vector2i(12, 12), Vector2(0.2, 0.2), 0.12, 0.08)
 
 func display_name() -> String:
 	return "Battle"
 
 func build_phases(ctx: TurnContext) -> Array[TurnPhase]:
 	ctx.battle = _build_battle(ctx.board)
-	ctx.score_tracker.combo_step = minf(BASE_COMBO_STEP + COMBO_STEP_PER_LEVEL * (level - 1), MAX_COMBO_STEP)
+	ctx.score_tracker.combo_step = LevelCurve.linear(BASE_COMBO_STEP, COMBO_STEP_PER_LEVEL, level, MAX_COMBO_STEP)
 	return [
 		PhaseBattleTurnStart.new(),
 		PhaseCharacterInput.new(),
@@ -48,13 +45,12 @@ func build_phases(ctx: TurnContext) -> Array[TurnPhase]:
 	]
 
 func board_params(base: WorldGenParams) -> WorldGenParams:
-	var steps := level - 1
 	var params: WorldGenParams = base.duplicate()
-	params.width = mini(START_WIDTH + floori(steps / float(LEVELS_PER_WIDTH)), maxi(base.width, START_WIDTH))
-	params.height = mini(START_HEIGHT + floori(steps / float(LEVELS_PER_HEIGHT)), maxi(base.height, START_HEIGHT))
-	params.color_count = mini(START_COLORS + floori(steps / float(LEVELS_PER_COLOR)), maxi(base.color_count, START_COLORS))
+	params.width = LevelCurve.stepped(START_WIDTH, LEVELS_PER_WIDTH, level, maxi(base.width, START_WIDTH))
+	params.height = LevelCurve.stepped(START_HEIGHT, LEVELS_PER_HEIGHT, level, maxi(base.height, START_HEIGHT))
+	params.color_count = LevelCurve.stepped(START_COLORS, LEVELS_PER_COLOR, level, maxi(base.color_count, START_COLORS))
 	var pit_cap := mini(base.pit_count, floori(params.width * params.height * MAX_PIT_RATIO))
-	params.pit_count = mini(floori(steps * PITS_PER_LEVEL), pit_cap)
+	params.pit_count = LevelCurve.stepped(0, LEVELS_PER_PIT, level, pit_cap)
 	return params
 
 func shows_score_hud() -> bool:
@@ -70,10 +66,7 @@ func _build_battle(board: BoardGraph) -> BattleContext:
 	var battle := BattleContext.new(CombatResolver.new(board.rng))
 	battle.level = level
 	battle.power_multiplier = POWER_MULTIPLIER_BY_COLORS.get(board.colors.size(), 1.0)
-	var steps := level - 1
-	var hero_hp := roundi(HERO_BASE_HP * (1.0 + HERO_HP_GROWTH_PER_LEVEL * steps))
-	var hero_power := HERO_BASE_POWER * (1.0 + HERO_POWER_GROWTH_PER_LEVEL * steps)
-	battle.allies.append(Character.new("Hero", Character.Side.ALLY, hero_hp, 12, hero_power, HumanController.new()))
+	battle.allies.append(hero_type.roll(level, Character.Side.ALLY, HumanController.new(), board.rng))
 	battle.allies.append_array(EncounterGenerator.allies(level, board.rng))
 	battle.enemies = EncounterGenerator.enemies(level, board.rng)
 	return battle

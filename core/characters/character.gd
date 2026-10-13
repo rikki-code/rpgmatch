@@ -17,7 +17,7 @@ var initiative: int
 var power_scale: float
 var base_crit_chance: float
 var controller: CharacterController
-## Absorbs incoming damage before HP (banked by DEFEND).
+## Absorbs incoming damage before HP (banked by DefendAction).
 var shield: int = 0
 
 func _init(p_display_name: String, p_side: Character.Side, p_max_hp: int, p_initiative: int, p_power_scale: float, p_controller: CharacterController, p_base_crit_chance: float = 0.05) -> void:
@@ -32,6 +32,10 @@ func _init(p_display_name: String, p_side: Character.Side, p_max_hp: int, p_init
 
 func is_alive() -> bool:
 	return hp > 0
+
+## What it takes to kill it right now.
+func effective_hp() -> int:
+	return hp + shield
 
 func power_from_points(points: int) -> int:
 	if points <= 0:

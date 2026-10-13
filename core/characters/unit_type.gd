@@ -1,11 +1,8 @@
-## A unit archetype (enemy or recruitable ally): level-1 stat ranges, how
-## they grow per level, and its encounter cost / unlock level (see
-## EncounterGenerator).
+## A unit archetype (enemy, recruitable ally, the hero): level-1 stat
+## ranges, how they grow per level, and its encounter cost / unlock level
+## (see EncounterGenerator).
 class_name UnitType
 extends RefCounted
-
-const HP_GROWTH_PER_LEVEL := 0.10
-const POWER_GROWTH_PER_LEVEL := 0.06
 
 var display_name: String
 var cost: int
@@ -13,21 +10,25 @@ var min_level: int
 var hp_range: Vector2i
 var initiative_range: Vector2i
 var power_range: Vector2
+## Share of the level-1 value gained per level (LevelCurve.percent).
+var hp_growth: float
+var power_growth: float
 
-func _init(p_name: String, p_cost: int, p_min_level: int, p_hp: Vector2i, p_initiative: Vector2i, p_power: Vector2) -> void:
+func _init(p_name: String, p_cost: int, p_min_level: int, p_hp: Vector2i, p_initiative: Vector2i, p_power: Vector2, p_hp_growth := 0.10, p_power_growth := 0.06) -> void:
 	display_name = p_name
 	cost = p_cost
 	min_level = p_min_level
 	hp_range = p_hp
 	initiative_range = p_initiative
 	power_range = p_power
+	hp_growth = p_hp_growth
+	power_growth = p_power_growth
 
-func roll(level: int, side: Character.Side, rng: RandomNumberGenerator) -> Character:
-	var steps := level - 1
-	var hp := roundi(rng.randi_range(hp_range.x, hp_range.y) * (1.0 + HP_GROWTH_PER_LEVEL * steps))
-	var power := rng.randf_range(power_range.x, power_range.y) * (1.0 + POWER_GROWTH_PER_LEVEL * steps)
+func roll(level: int, side: Character.Side, controller: CharacterController, rng: RandomNumberGenerator) -> Character:
+	var hp := roundi(LevelCurve.percent(rng.randi_range(hp_range.x, hp_range.y), hp_growth, level))
+	var power := LevelCurve.percent(rng.randf_range(power_range.x, power_range.y), power_growth, level)
 	var initiative := rng.randi_range(initiative_range.x, initiative_range.y)
-	return Character.new(display_name, side, hp, initiative, power, AiController.new(AiController.skill_for_level(level)))
+	return Character.new(display_name, side, hp, initiative, power, controller)
 
 static func enemy_catalog() -> Array[UnitType]:
 	return [

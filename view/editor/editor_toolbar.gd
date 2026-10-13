@@ -13,6 +13,7 @@ signal cell_kind_selected(entry: EditorCellCatalog.Entry)
 signal remove_cell_selected
 signal tile_selected(entry: EditorTileCatalog.Entry)
 signal game_mode_selected(mode: GameMode)
+signal battle_level_selected(level: int)
 
 @onready var _panel: Control = $Panel
 @onready var _cell_kind_option: OptionButton = $Panel/Toolbar/CellKindOption
@@ -20,6 +21,7 @@ signal game_mode_selected(mode: GameMode)
 @onready var _normal_option: OptionButton = $Panel/Toolbar/NormalTilesOption
 @onready var _special_option: OptionButton = $Panel/Toolbar/SpecialTilesOption
 @onready var _mode_option: OptionButton = $Panel/Toolbar/ModeOption
+@onready var _level_spin: SpinBox = $Panel/Toolbar/LevelSpin
 @onready var _icon_viewport: SubViewport = $IconViewport
 
 var _tile_view := TileView.new()
@@ -41,14 +43,24 @@ func _ready() -> void:
 	_normal_option.get_popup().id_pressed.connect(_on_normal_tile_selected)
 	_special_option.get_popup().id_pressed.connect(_on_special_tile_selected)
 	_mode_option.get_popup().id_pressed.connect(_on_mode_selected)
+	_level_spin.value_changed.connect(func(value: float) -> void: battle_level_selected.emit(int(value)))
 
 func set_panel_visible(visible_now: bool) -> void:
 	_panel.visible = visible_now
 
-func setup(cell_catalog: Array[EditorCellCatalog.Entry], tile_catalog: Array[EditorTileCatalog.Entry], modes: Array[GameMode] = [], current_mode: GameMode = null) -> void:
+## Mode/level can change while the editor is closed — synced on every open.
+func show_state(current_mode: GameMode, battle_level: int) -> void:
+	_mode_option.select(_modes.find(current_mode))
+	_level_spin.set_value_no_signal(battle_level)
+
+func setup(cell_catalog: Array[EditorCellCatalog.Entry], tile_catalog: Array[EditorTileCatalog.Entry], modes: Array[GameMode] = []) -> void:
 	if _populated:
 		return
 	_populated = true
+	_modes = modes
+	_mode_option.clear()
+	for i in range(_modes.size()):
+		_mode_option.add_item(_modes[i].display_name(), i)
 	_cell_entries = cell_catalog
 	_normal_entries.clear()
 	_special_entries.clear()
@@ -68,11 +80,6 @@ func setup(cell_catalog: Array[EditorCellCatalog.Entry], tile_catalog: Array[Edi
 	await _populate_tiles(_normal_option, _normal_entries)
 	await _populate_tiles(_special_option, _special_entries)
 
-	_modes = modes
-	_mode_option.clear()
-	for i in range(_modes.size()):
-		_mode_option.add_item(_modes[i].display_name(), i)
-	_mode_option.select(_modes.find(current_mode))
 
 	_set_active_tool(Tool.CELL_KIND)
 	_icon_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED

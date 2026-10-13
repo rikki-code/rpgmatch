@@ -1,8 +1,7 @@
 ## Helps a stuck player on their turn: after HINT_DELAY_SECONDS it asks for a
-## move to be highlighted — picked like an AI of the battle's level would
-## (MoveFinder.pick_move + AiController.skill_for_level), so hints get better
-## with the level; outside battle it's the best move. With no legal move at
-## all it shows a Shuffle button instead (ShuffleController).
+## move to be highlighted — the one an AI of the battle's level would play,
+## so hints get better with the level; outside battle it's the best move.
+## With no legal move at all it shows a Shuffle button (ShuffleController).
 class_name MoveAssist
 extends Control
 
@@ -49,9 +48,10 @@ func _process(delta: float) -> void:
 	_idle_seconds += delta
 	if _idle_seconds >= HINT_DELAY_SECONDS:
 		_hinted = true
-		var skill := AiController.skill_for_level(_ctx.battle.level) if _ctx.battle != null else AiController.MAX_SKILL
-		var match_weight := _ctx.battle.power_multiplier if _ctx.battle != null else 1.0
-		var move := MoveFinder.pick_move(_ctx.board, skill, _ctx.board.rng, match_weight)
+		var move := MoveFinder.best_move(_ctx.board)
+		if _ctx.battle != null:
+			var advisor := AiController.new(AiController.skill_for_level(_ctx.battle.level))
+			move = advisor.choose_move(_ctx.board, _ctx.battle, _ctx.board.rng)
 		if move != null:
 			hint_requested.emit(move)
 
