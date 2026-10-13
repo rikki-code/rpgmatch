@@ -7,6 +7,10 @@ extends RefCounted
 func display_name() -> String:
 	return ""
 
+## Semantic tag for the view (charge/bolt color); core knows no colors.
+func visual_kind() -> StringName:
+	return &""
+
 ## Picks from the actor's own side (shield, heal) instead of opponents.
 func targets_own_side() -> bool:
 	return false

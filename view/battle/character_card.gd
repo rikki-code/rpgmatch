@@ -18,6 +18,8 @@ const WIDTH := 230.0
 const COMPACT_WIDTH := 196.0
 const BUTTON_WIDTH := 95.0
 const COMPACT_BUTTON_WIDTH := 78.0
+const POWER_WIDTH := 104.0
+const COMBO_WIDTH := 76.0
 
 var character: Character
 var _style: StyleBoxFlat
@@ -26,6 +28,12 @@ var _hp_label: Label
 var _shield_label: Label
 var _intent_label: Label
 var _power_label: Label
+var _combo_label: Label
+## Power + combo on one line; both fixed-width so the line never shifts.
+var _power_row: HBoxContainer
+var _power_counter: RollingCounter
+var _shown_combo := 1.0
+var _combo_punch_tween: Tween
 var _action_bar: HBoxContainer
 var _action_buttons := {}  # BattleAction -> Button
 var _default_action: BattleAction
@@ -33,6 +41,9 @@ var _active := false
 var _targeted := false
 ## Target of an own-side action (shield) — drawn in the shield color.
 var _targeted_own_side := false
+## Charge aura scene from the battle FX pack (BattleFx.AURA_SCENE).
+var _aura: Control
+var _aura_tween: Tween
 
 func setup(p_character: Character, actions: Array[BattleAction]) -> void:
 	character = p_character
@@ -44,6 +55,7 @@ func setup(p_character: Character, actions: Array[BattleAction]) -> void:
 	_style.set_corner_radius_all(10)
 	_style.set_content_margin_all(12)
 	add_theme_stylebox_override("panel", _style)
+	_build_aura()
 
 	var box := VBoxContainer.new()
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -66,8 +78,25 @@ func setup(p_character: Character, actions: Array[BattleAction]) -> void:
 	_shield_label = _make_label(box, 16)
 	_shield_label.add_theme_color_override("font_color", SHIELD_COLOR)
 	_intent_label = _make_label(box, 16)
-	_power_label = _make_label(box, 20)
+	_power_row = HBoxContainer.new()
+	_power_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_power_row.add_theme_constant_override("separation", 12)
+	box.add_child(_power_row)
+	_power_label = _make_label(_power_row, 20)
 	_power_label.add_theme_color_override("font_color", BORDER_ACTIVE)
+	_power_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_power_label.custom_minimum_size.x = POWER_WIDTH
+	_power_counter = RollingCounter.new(_power_label, "Power %d")
+	_combo_label = _make_label(_power_row, 14)
+	_combo_label.add_theme_color_override("font_color", Color(1.0, 0.6, 0.2))
+	_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_combo_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_combo_label.size_flags_vertical = Control.SIZE_FILL
+	_combo_label.custom_minimum_size.x = COMBO_WIDTH
+	# Keeps its slot (transparent until a combo) so the power line never shifts.
+	_combo_label.text = " "
+	_combo_label.modulate.a = 0.0
+	_combo_label.resized.connect(func() -> void: _combo_label.pivot_offset = _combo_label.size / 2.0)
 
 	_action_bar = HBoxContainer.new()
 	_action_bar.add_theme_constant_override("separation", 8)
@@ -94,11 +123,34 @@ func set_active(active: bool, human: bool) -> void:
 	_active = active
 	_action_bar.visible = active and human
 	_intent_label.visible = active
-	_power_label.visible = active
+	_power_row.visible = active
 	if active:
 		set_intent(_default_action, null)
 		set_power(0, 0)
+	else:
+		set_charge(0.0, Color.WHITE)
 	_update_border()
+
+## Charge aura; `intensity` 0..1, 0 hides it.
+func set_charge(intensity: float, color: Color) -> void:
+	_aura.set_energy_color(color)
+	if _aura_tween != null and _aura_tween.is_valid():
+		_aura_tween.kill()
+	if intensity > 0.0:
+		_aura.visible = true
+	_aura_tween = create_tween()
+	_aura_tween.tween_method(_aura.set_intensity, _aura.get_intensity(), intensity, 0.25)
+	if intensity == 0.0:
+		_aura_tween.tween_callback(func() -> void: _aura.visible = false)
+
+func _build_aura() -> void:
+	_aura = BattleFx.AURA_SCENE.instantiate()
+	_aura.visible = false
+	add_child(_aura)
+
+func _process(_delta: float) -> void:
+	if _aura.visible:
+		_aura.fit(get_global_rect())
 
 func set_actions_enabled(enabled: bool) -> void:
 	for button: Button in _action_buttons.values():
@@ -114,20 +166,33 @@ func set_intent(action: BattleAction, target: Character) -> void:
 	for other: BattleAction in _action_buttons:
 		_action_buttons[other].modulate = BORDER_ACTIVE if other == action else Color.WHITE
 
+## Power rolls up like the score; the combo line punches only when the combo grows.
 func set_power(power: int, combo: float) -> void:
-	_power_label.text = "Power %d" % power + ("   x%.1f combo" % combo if combo > 1.0 else "")
-	if power > 0:
-		_power_label.pivot_offset = _power_label.size / 2.0
-		_power_label.scale = Vector2.ONE * 1.25
-		create_tween().tween_property(_power_label, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	if power <= 0:
+		_power_counter.reset()
+		_shown_combo = 1.0
+		_combo_label.modulate.a = 0.0
+		return
+	_power_counter.roll_to(power, clampf(1.1 + (combo - 1.0) * 0.3, 1.1, 1.6))
+	if combo > _shown_combo:
+		_shown_combo = combo
+		_combo_label.text = "x%.1f combo" % combo
+		_combo_label.modulate.a = 1.0
+		if _combo_punch_tween != null and _combo_punch_tween.is_valid():
+			_combo_punch_tween.kill()
+		_combo_label.scale = Vector2.ONE * 1.4
+		_combo_punch_tween = create_tween()
+		_combo_punch_tween.tween_property(_combo_label, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
+## The punch deepens with the hit's share of max HP, crits on top.
 func play_hit(damage: int, crit: bool) -> void:
 	refresh()
 	_float_text(("CRIT -%d" if crit else "-%d") % damage, Color(1, 0.6, 0.1) if crit else Color(1, 0.3, 0.3))
 	var flash := create_tween()
 	flash.tween_property(self, "modulate", Color(1, 0.35, 0.35), 0.08)
 	flash.tween_property(self, "modulate", Color.WHITE if character.is_alive() else DEAD_MODULATE, 0.3)
-	scale = Vector2.ONE * (0.85 if crit else 0.92)
+	var weight := clampf(float(damage) / character.max_hp * 2.0, 0.0, 1.0)
+	scale = Vector2.ONE * (lerpf(0.95, 0.82, weight) - (0.05 if crit else 0.0))
 	create_tween().tween_property(self, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 func play_shield(amount: int) -> void:

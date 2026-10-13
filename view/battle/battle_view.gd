@@ -10,6 +10,10 @@ extends Control
 signal continue_requested(victory: bool)
 signal exit_requested
 
+## Charge aura: visible from the first point, full once the action would
+## move half the target's max HP — relative, so it reads the same at any level.
+const MIN_CHARGE := 0.35
+const FULL_CHARGE_HP_SHARE := 0.5
 const COLUMN_WIDTH := 250.0
 const EDGE_MARGIN := 24.0
 ## Fits the tallest (active, human) card.
@@ -29,6 +33,7 @@ var _turn_label: Label
 var _level_label: Label
 var _continue_button: Button
 var _overlay: ColorRect
+var _fx: BattleFx
 var _result_label: Label
 
 func _ready() -> void:
@@ -37,6 +42,8 @@ func _ready() -> void:
 	_enemies_box = _make_box()
 	_build_turn_label()
 	_build_level_label()
+	_fx = BattleFx.new()
+	add_child(_fx)
 	_build_overlay()
 	resized.connect(_apply_layout)
 	_apply_layout()
@@ -59,6 +66,7 @@ func setup(ctx: TurnContext) -> void:
 	_battle.action_selected.connect(_on_action_selected)
 	_battle.target_selected.connect(_on_target_selected)
 	_battle.shield_gained.connect(_on_shield_gained)
+	_battle.action_launched.connect(_on_action_launched)
 	_battle.battle_ended.connect(_on_battle_ended)
 	_battle.resolver.action_resolved.connect(_on_action_resolved)
 	if not ctx.score_tracker.score_awarded.is_connected(_on_score_awarded):
@@ -115,6 +123,7 @@ func _on_turn_started(character: Character) -> void:
 
 func _on_action_selected(character: Character, action: BattleAction) -> void:
 	_update_target_marks()
+	_refresh_charge()
 	if not character.controller.is_human() and _battle.pending_target != null:
 		_turn_label.text = "%s prepares to %s %s" % [character.display_name, action.display_name().to_lower(), _battle.pending_target.display_name]
 
@@ -126,6 +135,7 @@ func _on_score_awarded(_amount: int, _wave: int, _cell: GridCell, _entity: Board
 		return
 	var actor := _battle.active_character
 	_cards[actor].set_power(_battle.power_of(actor, _ctx.score_tracker), _ctx.score_tracker.combo_factor())
+	_refresh_charge()
 
 func _on_action_resolved(action: CombatAction, damage: int, is_crit: bool) -> void:
 	var target_card: CharacterCard = _cards[action.target]
@@ -133,6 +143,29 @@ func _on_action_resolved(action: CombatAction, damage: int, is_crit: bool) -> vo
 	if not action.target.is_alive():
 		_update_target_marks()
 	_turn_label.text = "%s hits %s for %d%s" % [action.actor.display_name, action.target.display_name, damage, "  CRIT!" if is_crit else ""]
+
+func _on_action_launched(actor: Character, target: Character, action: BattleAction) -> void:
+	var intensity := _charge_intensity()
+	# A self-cast keeps glowing until its burst; set_active(false) clears it at turn end.
+	if target != actor:
+		_cards[actor].set_charge(0.0, Color.WHITE)
+	_fx.play_action(_cards[actor].get_global_rect(), _cards[target].get_global_rect(), BattleFx.color_for(action), PhaseResolveCombatAction.LAUNCH_SECONDS, intensity)
+
+func _refresh_charge() -> void:
+	var actor := _battle.active_character
+	if actor != null and _battle.pending_action != null:
+		_cards[actor].set_charge(_charge_intensity(), BattleFx.color_for(_battle.pending_action))
+
+## One 0..1 scale for every power-driven visual (aura, bolt, burst, hit): the
+## pending action's power relative to its target, 0 when there's none.
+func _charge_intensity() -> float:
+	var actor := _battle.active_character
+	var power := _battle.power_of(actor, _ctx.score_tracker)
+	if power <= 0:
+		return 0.0
+	var target := _battle.pending_target if _battle.pending_target != null else actor
+	return clampf(MIN_CHARGE + (1.0 - MIN_CHARGE) * power / (target.max_hp * FULL_CHARGE_HP_SHARE), MIN_CHARGE, 1.0)
+
 
 func _on_shield_gained(character: Character, amount: int) -> void:
 	_cards[character].play_shield(amount)

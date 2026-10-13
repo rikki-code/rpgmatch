@@ -10,6 +10,9 @@ const MAX_CRIT_CHANCE := 0.5
 func display_name() -> String:
 	return "Attack"
 
+func visual_kind() -> StringName:
+	return &"attack"
+
 func ai_priority(_actor: Character, _battle: BattleContext) -> float:
 	return 0.5
 

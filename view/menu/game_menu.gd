@@ -71,8 +71,8 @@ func _show_page(page: Control) -> void:
 
 func _build() -> void:
 	_open_button = Button.new()
-	_open_button.text = "☰"
-	_open_button.add_theme_font_size_override("font_size", 24)
+	# An icon, not a glyph: web builds have no system font fallback for symbols.
+	_open_button.icon = load(PackPaths.UI_PACK + "menu_icon.svg")
 	_open_button.anchor_left = 1.0
 	_open_button.anchor_right = 1.0
 	_open_button.offset_left = -60.0

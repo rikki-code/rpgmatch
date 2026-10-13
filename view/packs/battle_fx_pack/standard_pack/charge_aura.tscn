@@ -1,0 +1,62 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://view/packs/battle_fx_pack/standard_pack/charge_aura.gd" id="1"]
+[ext_resource type="Shader" path="res://view/packs/battle_fx_pack/standard_pack/energy_aura.gdshader" id="2"]
+[ext_resource type="Script" path="res://view/packs/battle_fx_pack/standard_pack/edge_arcs.gd" id="3"]
+
+[sub_resource type="ShaderMaterial" id="aura"]
+resource_local_to_scene = true
+shader = ExtResource("2")
+shader_parameter/energy_color = Color(1, 1, 1, 1)
+shader_parameter/intensity = 0.0
+shader_parameter/rect_size = Vector2(300, 200)
+shader_parameter/padding = 72.0
+shader_parameter/corner = 10.0
+
+[sub_resource type="CanvasItemMaterial" id="additive"]
+blend_mode = 1
+
+[sub_resource type="Gradient" id="mote_fade"]
+offsets = PackedFloat32Array(0, 0.2, 1)
+colors = PackedColorArray(1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="Gradient" id="dot_gradient"]
+offsets = PackedFloat32Array(0, 0.35, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0.55, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="dot"]
+gradient = SubResource("dot_gradient")
+width = 32
+height = 32
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[node name="ChargeAura" type="ColorRect"]
+top_level = true
+show_behind_parent = true
+material = SubResource("aura")
+mouse_filter = 2
+script = ExtResource("1")
+
+[node name="EdgeArcs" type="Node2D" parent="."]
+material = SubResource("additive")
+script = ExtResource("3")
+
+[node name="Motes" type="CPUParticles2D" parent="."]
+material = SubResource("additive")
+emitting = false
+texture = SubResource("dot")
+amount = 22
+lifetime = 1.6
+local_coords = false
+emission_shape = 3
+emission_rect_extents = Vector2(100, 60)
+direction = Vector2(0, -1)
+spread = 25.0
+gravity = Vector2(0, -45)
+initial_velocity_min = 10.0
+initial_velocity_max = 35.0
+scale_amount_min = 0.25
+scale_amount_max = 0.6
+color_ramp = SubResource("mote_fade")
