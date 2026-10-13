@@ -13,8 +13,11 @@ var swap_controller: SwapController
 var detonate_controller: DetonateController
 var quest_manager: QuestManager
 var current_mode: GameMode
-var battle_mode := BattleMode.new()
-var available_modes: Array[GameMode] = [InfiniteMode.new(), battle_mode]
+var available_modes: Array[GameMode] = [
+	InfiniteMode.new(),
+	BattleMode.new("Battle", [UnitType.hero()], [], 0.92, 1.0),
+	BattleMode.new("PvP", [UnitType.hero()], [UnitType.devil()], 1.0, 1.0),
+]
 var board_view: BoardView3D
 var editor_mode_controller: EditorModeController
 var score_hud: ScoreHud
@@ -28,9 +31,8 @@ var _pending_mode: GameMode
 func _ready() -> void:
 	if GameSession.params == null:
 		GameSession.params = world_gen_params.duplicate() if world_gen_params != null else WorldGenParams.new()
-	battle_mode.level = GameSession.battle_level
 	var start_mode := available_modes[GameSession.mode_index]
-	board = BoardGenerator.generate(start_mode.board_params(GameSession.params))
+	board = BoardGenerator.generate(start_mode.board_params(GameSession.params, GameSession.battle_level))
 
 	ctx = TurnContext.new(board)
 	ctx.resolver = EffectResolver.new(board)
@@ -154,8 +156,7 @@ func _apply_pending_mode() -> void:
 ## kept — only Next battle/Reset regenerate it for the level).
 func _set_battle_level(level: int) -> void:
 	GameSession.battle_level = level
-	if current_mode == battle_mode:
-		switch_mode(battle_mode)
+	switch_mode(current_mode)
 
 ## Reloading the scene is the reset: every module gets rebuilt from GameSession.
 func _restart() -> void:
@@ -164,10 +165,9 @@ func _restart() -> void:
 
 func _apply_mode(mode: GameMode) -> void:
 	current_mode = mode
-	battle_mode.level = GameSession.battle_level
 	GameSession.mode_index = available_modes.find(mode)
 	game_menu.show_selected(GameSession.mode_index, editor_mode_controller.active)
-	turn_manager = TurnManager.new(ctx, mode.build_phases(ctx))
+	turn_manager = TurnManager.new(ctx, mode.build_phases(ctx, GameSession.battle_level))
 	ctx.turn_manager = turn_manager
 	score_hud.visible = mode.shows_score_hud()
 	quest_hud.visible = mode.shows_quest_hud()

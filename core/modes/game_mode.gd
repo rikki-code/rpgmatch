@@ -10,12 +10,13 @@ func display_name() -> String:
 
 ## ctx already has board/resolver/score_tracker set. A mode that needs more
 ## (e.g. BattleMode setting ctx.battle) does so here before returning.
-func build_phases(_ctx: TurnContext) -> Array[TurnPhase]:
+## `level` = progression level (GameSession.battle_level); modes that don't scale ignore it.
+func build_phases(_ctx: TurnContext, _level: int) -> Array[TurnPhase]:
 	return []
 
 ## Generation params for a fresh board in this mode; `base` = the player's
 ## settings (menu), which a mode may scale down from.
-func board_params(base: WorldGenParams) -> WorldGenParams:
+func board_params(base: WorldGenParams, _level: int) -> WorldGenParams:
 	return base
 
 func shows_score_hud() -> bool:

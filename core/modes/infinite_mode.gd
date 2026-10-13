@@ -5,7 +5,7 @@ extends GameMode
 func display_name() -> String:
 	return "Infinite"
 
-func build_phases(ctx: TurnContext) -> Array[TurnPhase]:
+func build_phases(ctx: TurnContext, _level: int) -> Array[TurnPhase]:
 	ctx.battle = null
 	ctx.score_tracker.combo_step = 1.0
 	return [

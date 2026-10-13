@@ -1,40 +1,36 @@
-## Builds a level's enemy group and recruited allies by the same rule:
-## budget = level, a slot count that grows with level, each slot a random
-## unlocked UnitType (weight = cost², so the budget gets spent) that still
-## leaves room for the remaining slots. Allies pay ALLY_COST_FACTOR x cost,
-## so they arrive later and weaker than enemies.
+## One rule for both sides: `budget` (the mode's share of the level) and a
+## side size from SLOT_UNLOCK_LEVELS. The side's human-controlled units
+## (hero, PvP Devil) go in first and pay their cost like any unit; the rest
+## are random unlocked catalog units leaning hard toward the expensive ones
+## (weight = cost³) — few strong units over many weak.
 class_name EncounterGenerator
 extends RefCounted
 
-const ALLY_COST_FACTOR := 2
-## The hero always takes one ally slot.
-const MAX_RECRUITS := BattleContext.MAX_PER_SIDE - 1
+## Level at which each slot on a side opens: 2nd at L3, 3rd at L10, all 5 at L20.
+const SLOT_UNLOCK_LEVELS: Array[int] = [1, 3, 6, 10, 15]
 
-## L1 one slime, L2 two weak, L3 goblin + a weak one ... L8+ five.
-static func enemies(level: int, rng: RandomNumberGenerator) -> Array[Character]:
-	var slots := mini(1 + floori(level / 2.0), BattleContext.MAX_PER_SIDE)
-	return _generate(UnitType.enemy_catalog(), 1, Character.Side.ENEMY, slots, level, rng)
+static func build_side(humans: Array[UnitType], catalog: Array[UnitType], side: Character.Side, level: int, budget: int, rng: RandomNumberGenerator) -> Array[Character]:
+	var units: Array[Character] = []
+	for type in humans:
+		units.append(type.roll(level, side, HumanController.new(), rng))
+		budget -= type.cost
+	var slots := SLOT_UNLOCK_LEVELS.filter(func(at: int) -> bool: return at <= level).size() - units.size()
+	units.append_array(_generate(catalog, side, slots, budget, level, rng))
+	return units
 
-## First recruit at L3, one more every 3 levels.
-static func allies(level: int, rng: RandomNumberGenerator) -> Array[Character]:
-	var slots := mini(floori(level / 3.0), MAX_RECRUITS)
-	return _generate(UnitType.ally_catalog(), ALLY_COST_FACTOR, Character.Side.ALLY, slots, level, rng)
-
-static func _generate(catalog: Array[UnitType], cost_factor: int, side: Character.Side, slots: int, level: int, rng: RandomNumberGenerator) -> Array[Character]:
+static func _generate(catalog: Array[UnitType], side: Character.Side, slots: int, budget: int, level: int, rng: RandomNumberGenerator) -> Array[Character]:
 	var unlocked := catalog.filter(func(t: UnitType) -> bool: return t.min_level <= level)
-	if unlocked.is_empty() or slots <= 0:
+	if unlocked.is_empty():
 		return []
-	var cheapest: int = unlocked.map(func(t: UnitType) -> int: return t.cost * cost_factor).min()
-	var budget := level
+	var cheapest: int = unlocked.map(func(t: UnitType) -> int: return t.cost).min()
+	slots = min(slots, floori(budget / float(cheapest)))
 	var picked: Array[UnitType] = []
 	for slot in range(slots):
 		var reserve := (slots - slot - 1) * cheapest
-		var affordable := unlocked.filter(func(t: UnitType) -> bool: return t.cost * cost_factor <= budget - reserve)
-		if affordable.is_empty():
-			break
-		var choice := _weighted_by_cost_sq(affordable, rng)
+		var affordable := unlocked.filter(func(t: UnitType) -> bool: return t.cost <= budget - reserve)
+		var choice := _weighted_toward_expensive(affordable, rng)
 		picked.append(choice)
-		budget -= choice.cost * cost_factor
+		budget -= choice.cost
 
 	var units: Array[Character] = []
 	var numbered := {}  # UnitType -> copies named so far
@@ -46,13 +42,13 @@ static func _generate(catalog: Array[UnitType], cost_factor: int, side: Characte
 		units.append(unit)
 	return units
 
-static func _weighted_by_cost_sq(types: Array, rng: RandomNumberGenerator) -> UnitType:
+static func _weighted_toward_expensive(types: Array, rng: RandomNumberGenerator) -> UnitType:
 	var total := 0
 	for type: UnitType in types:
-		total += type.cost * type.cost
+		total += type.cost ** 3
 	var roll := rng.randi_range(1, total)
 	for type: UnitType in types:
-		roll -= type.cost * type.cost
+		roll -= type.cost ** 3
 		if roll <= 0:
 			return type
 	return types.back()

@@ -69,7 +69,7 @@ func _on_turn_started(character: Character) -> void:
 	for other: Character in _cards:
 		_cards[other].set_active(other == character, other.controller.is_human())
 	if character.controller.is_human():
-		_turn_label.text = "Your turn: pick an action, click any card as the target, then swap tiles"
+		_turn_label.text = "%s's turn: pick an action, click any card as the target, then swap tiles" % character.display_name
 	else:
 		_turn_label.text = "%s's turn..." % character.display_name
 	_update_target_marks()
@@ -117,7 +117,8 @@ func _on_battle_ended(victory: bool) -> void:
 	for character: Character in _cards:
 		_cards[character].set_active(false, false)
 	_update_target_marks()
-	_result_label.text = "Victory!" if victory else "Defeat"
+	# Named loser side reads right in PvP too ("Devil wins!").
+	_result_label.text = "Victory!" if victory else "%s wins!" % _battle.enemies[0].display_name
 	_continue_button.text = "Next battle" if victory else "Retry"
 	_overlay.visible = true
 
