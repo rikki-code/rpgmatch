@@ -1,7 +1,13 @@
 ## Active-quest cards: tile icon (rendered like the editor toolbar's dropdown
 ## icons, see EditorToolbar) + progress number underneath, one per quest.
+## Docked to the board: a column on its right (landscape) or a row below it
+## (portrait).
 class_name QuestHud
-extends VBoxContainer
+extends BoxContainer
+
+const EDGE_MARGIN := 16.0
+const TOP := 64.0
+const DOCK_GAP := 12.0
 
 @onready var _icon_viewport: SubViewport = $IconViewport
 
@@ -13,6 +19,31 @@ var _counts: Dictionary = {}  # QuestProgress -> Label
 ## several quests completing off one blast) — this serializes captures so
 ## only one tile ever sits in the shared IconViewport at a time.
 var _icon_capture_busy := false
+
+func _ready() -> void:
+	get_viewport().size_changed.connect(_apply_orientation)
+	_apply_orientation()
+
+func _apply_orientation() -> void:
+	vertical = not _portrait()
+
+## Reserved band at the screen edge it docks from (GameRoot._free_screen_rect).
+func hud_rects() -> Array[Rect2]:
+	var screen := get_viewport_rect().size
+	if _portrait():
+		return [Rect2(Vector2((screen.x - size.x) / 2.0, screen.y - EDGE_MARGIN - size.y), size)]
+	return [Rect2(Vector2(screen.x - EDGE_MARGIN - size.x, TOP), size)]
+
+func dock_to_board(board_rect: Rect2, _spawn_lane: float) -> void:
+	var screen := get_viewport_rect().size
+	if _portrait():
+		position = Vector2(board_rect.get_center().x - size.x / 2.0, minf(board_rect.end.y + DOCK_GAP, screen.y - EDGE_MARGIN - size.y))
+	else:
+		position = Vector2(minf(board_rect.end.x + DOCK_GAP, screen.x - EDGE_MARGIN - size.x), board_rect.position.y)
+
+func _portrait() -> bool:
+	var screen := get_viewport_rect().size
+	return screen.y > screen.x
 
 func setup(quest_manager: QuestManager) -> void:
 	for quest in quest_manager.active_quests:

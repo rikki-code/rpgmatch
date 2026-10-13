@@ -60,7 +60,11 @@ func _ready() -> void:
 	ctx.shuffle_controller.shuffled.connect(_after_board_move)
 
 	camera = $Camera3D
-	get_tree().root.size_changed.connect(_refit_camera)
+	_fit_content_scale()
+	get_tree().root.size_changed.connect(func() -> void:
+		_fit_content_scale()
+		_refit_camera()
+	)
 
 	var input_controller: InputController = $InputController
 	input_controller.setup(camera, board_view, board, swap_controller, detonate_controller)
@@ -206,6 +210,16 @@ const CAMERA_HEIGHT := 15.0
 const CAMERA_TILT_DEGREES := 5.0
 const CAMERA_MARGIN := 2.0
 
+## Portrait screens (phones) get the project's base size turned portrait, so
+## the UI isn't shrunk to fit a 1920-wide landscape canvas.
+func _fit_content_scale() -> void:
+	var window := get_window()
+	var base := Vector2i(ProjectSettings.get_setting("display/window/size/viewport_width"), ProjectSettings.get_setting("display/window/size/viewport_height"))
+	var portrait := window.size.y > window.size.x
+	var wanted := Vector2i(mini(base.x, base.y), maxi(base.x, base.y)) if portrait else base
+	if window.content_scale_size != wanted:
+		window.content_scale_size = wanted
+
 ## Deferred a frame so HUD containers have their final size after a mode switch.
 func _refit_camera() -> void:
 	await get_tree().process_frame
@@ -237,31 +251,42 @@ func _place_camera() -> void:
 	var shift := free_rect.get_center() - viewport_size * 0.5
 	camera.h_offset = -shift.x / pixels_per_unit
 	camera.v_offset = shift.y / pixels_per_unit
+	var board_size := Vector2(board.width, board.height) * cell_size * pixels_per_unit
+	var board_rect := Rect2(free_rect.get_center() - board_size * 0.5, board_size)
+	# New tiles drop in from one cell above the board; each view decides whether to keep clear of it.
+	var spawn_lane := cell_size * pixels_per_unit
+	for view in _docked_hud():
+		view.dock_to_board(board_rect, spawn_lane)
 
 const HUD_GAP := 12.0
 
-## Viewport minus the visible HUD: blockers in the left/right 40% push that
-## side in, centered ones push the top or bottom.
+## Visible HUD views that reserve screen bands (hud_rects) and then sit against
+## the board (dock_to_board).
+func _docked_hud() -> Array:
+	return [score_hud, quest_hud, battle_view].filter(func(view: Control) -> bool: return view.visible)
+
+## Viewport minus the visible HUD: each blocker cuts the screen from the edge
+## that costs the least share of it — side columns cut left/right in
+## landscape, top/bottom rows and corner widgets cut top/bottom in portrait.
 func _free_screen_rect(viewport_size: Vector2) -> Rect2:
 	var rects: Array[Rect2] = game_menu.hud_rects()
-	if score_hud.visible:
-		rects.append(score_hud.get_global_rect())
-	if quest_hud.visible:
-		rects.append(quest_hud.get_global_rect())
-	if battle_view.visible:
-		rects.append_array(battle_view.hud_rects())
+	for view in _docked_hud():
+		rects.append_array(view.hud_rects())
 	var left := 0.0
 	var right := viewport_size.x
 	var top := 0.0
 	var bottom := viewport_size.y
 	for rect in rects:
-		if rect.end.x < viewport_size.x * 0.4:
-			left = maxf(left, rect.end.x + HUD_GAP)
-		elif rect.position.x > viewport_size.x * 0.6:
-			right = minf(right, rect.position.x - HUD_GAP)
-		elif rect.get_center().y < viewport_size.y * 0.5:
-			top = maxf(top, rect.end.y + HUD_GAP)
-		else:
-			bottom = minf(bottom, rect.position.y - HUD_GAP)
+		var cuts := [
+			(rect.end.x + HUD_GAP) / viewport_size.x,
+			(viewport_size.x - rect.position.x + HUD_GAP) / viewport_size.x,
+			(rect.end.y + HUD_GAP) / viewport_size.y,
+			(viewport_size.y - rect.position.y + HUD_GAP) / viewport_size.y,
+		]
+		match cuts.find(cuts.min()):
+			0: left = maxf(left, rect.end.x + HUD_GAP)
+			1: right = minf(right, rect.position.x - HUD_GAP)
+			2: top = maxf(top, rect.end.y + HUD_GAP)
+			3: bottom = minf(bottom, rect.position.y - HUD_GAP)
 	var free := Rect2(left, top, right - left, bottom - top)
 	return free if free.size.x > 0.0 and free.size.y > 0.0 else Rect2(Vector2.ZERO, viewport_size)

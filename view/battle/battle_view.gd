@@ -1,5 +1,6 @@
-## Battle screen around the shared board: ally cards left, enemy cards
-## right, whose-turn banner on top, victory/defeat overlay. A pure view of
+## Battle screen around the shared board: ally/enemy cards as side columns
+## (landscape) or rows — enemies top, allies bottom (portrait/phones) —
+## whose-turn banner on top, victory/defeat overlay. A pure view of
 ## ctx.battle — the player's picks go back through BattleContext, and only
 ## while the human can actually act (ctx.awaiting_player_input).
 class_name BattleView
@@ -11,12 +12,19 @@ signal exit_requested
 
 const COLUMN_WIDTH := 250.0
 const EDGE_MARGIN := 24.0
+## Fits the tallest (active, human) card.
+const ROW_HEIGHT := 240.0
+const PORTRAIT_BANNER_BOTTOM := 140.0
+const DOCK_GAP := 12.0
+const COLUMN_TOP := 80.0
+const COLUMN_BOTTOM_MARGIN := 120.0
 
 var _ctx: TurnContext
 var _battle: BattleContext
 var _cards: Dictionary = {}  # Character -> CharacterCard
-var _allies_column: VBoxContainer
-var _enemies_column: VBoxContainer
+var _allies_box: BoxContainer
+var _enemies_box: BoxContainer
+var _portrait := false
 var _turn_label: Label
 var _level_label: Label
 var _continue_button: Button
@@ -25,11 +33,13 @@ var _result_label: Label
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_allies_column = _make_column(true)
-	_enemies_column = _make_column(false)
+	_allies_box = _make_box()
+	_enemies_box = _make_box()
 	_build_turn_label()
 	_build_level_label()
 	_build_overlay()
+	resized.connect(_apply_layout)
+	_apply_layout()
 
 func setup(ctx: TurnContext) -> void:
 	_ctx = ctx
@@ -38,9 +48,9 @@ func setup(ctx: TurnContext) -> void:
 		card.queue_free()
 	_cards.clear()
 	for character in _battle.allies:
-		_add_card(character, _allies_column)
+		_add_card(character, _allies_box)
 	for character in _battle.enemies:
-		_add_card(character, _enemies_column)
+		_add_card(character, _enemies_box)
 	_overlay.visible = false
 	_turn_label.text = ""
 	_level_label.text = "Level %d" % _battle.level
@@ -54,9 +64,38 @@ func setup(ctx: TurnContext) -> void:
 	if not ctx.score_tracker.score_awarded.is_connected(_on_score_awarded):
 		ctx.score_tracker.score_awarded.connect(_on_score_awarded)
 
-## Screen areas the board must stay clear of (see GameRoot._hud_insets).
+## Screen areas the board must stay clear of (GameRoot._free_screen_rect).
+## Card boxes report their reserved bands at the screen edges, not their
+## docked positions, so docking never feeds back into the camera fit.
 func hud_rects() -> Array[Rect2]:
-	return [_allies_column.get_global_rect(), _enemies_column.get_global_rect(), _turn_label.get_global_rect(), _level_label.get_global_rect()]
+	var rects: Array[Rect2] = [_turn_label.get_global_rect(), _level_label.get_global_rect()]
+	if _portrait:
+		rects.append(Rect2(0.0, PORTRAIT_BANNER_BOTTOM, size.x, ROW_HEIGHT))
+		rects.append(Rect2(0.0, size.y - EDGE_MARGIN - ROW_HEIGHT, size.x, ROW_HEIGHT))
+	else:
+		var height := size.y - COLUMN_TOP - COLUMN_BOTTOM_MARGIN
+		rects.append(Rect2(EDGE_MARGIN, COLUMN_TOP, COLUMN_WIDTH, height))
+		rects.append(Rect2(size.x - EDGE_MARGIN - COLUMN_WIDTH, COLUMN_TOP, COLUMN_WIDTH, height))
+	return rects
+
+## Pulls the card boxes against the board's edges (allies before it, enemies
+## after it) instead of the screen edges, never past their reserved bands.
+## Opaque cards may cover the spawn lane, so they ignore it and hug the board itself.
+func dock_to_board(board_rect: Rect2, _spawn_lane: float) -> void:
+	if _portrait:
+		var top := clampf(board_rect.position.y - ROW_HEIGHT - DOCK_GAP, PORTRAIT_BANNER_BOTTOM, size.y)
+		_enemies_box.offset_top = top
+		_enemies_box.offset_bottom = top + ROW_HEIGHT
+		var bottom_top := clampf(board_rect.end.y + DOCK_GAP, 0.0, size.y - EDGE_MARGIN - ROW_HEIGHT) - size.y
+		_allies_box.offset_top = bottom_top
+		_allies_box.offset_bottom = bottom_top + ROW_HEIGHT
+	else:
+		var left := clampf(board_rect.position.x - COLUMN_WIDTH - DOCK_GAP, EDGE_MARGIN, size.x)
+		_allies_box.offset_left = left
+		_allies_box.offset_right = left + COLUMN_WIDTH
+		var right_left := clampf(board_rect.end.x + DOCK_GAP, 0.0, size.x - EDGE_MARGIN - COLUMN_WIDTH) - size.x
+		_enemies_box.offset_left = right_left
+		_enemies_box.offset_right = right_left + COLUMN_WIDTH
 
 func _process(_delta: float) -> void:
 	if _battle == null or _battle.active_character == null:
@@ -134,29 +173,67 @@ func _is_human_turn() -> bool:
 	var actor := _battle.active_character
 	return actor != null and actor.controller.is_human() and not _battle.ended
 
-func _add_card(character: Character, column: VBoxContainer) -> void:
+func _add_card(character: Character, box: BoxContainer) -> void:
 	var card := CharacterCard.new()
-	column.add_child(card)
+	box.add_child(card)
 	card.setup(character, _battle.actions)
 	card.clicked.connect(_on_card_clicked)
 	card.action_picked.connect(_on_action_picked)
 	_cards[character] = card
+	_fit_card(card)
 
-func _make_column(left: bool) -> VBoxContainer:
-	var column := VBoxContainer.new()
-	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.alignment = BoxContainer.ALIGNMENT_CENTER
-	column.add_theme_constant_override("separation", 10)
-	add_child(column)
-	column.anchor_top = 0.0
-	column.anchor_bottom = 1.0
-	column.anchor_left = 0.0 if left else 1.0
-	column.anchor_right = column.anchor_left
-	column.offset_top = 80.0
-	column.offset_bottom = -120.0
-	column.offset_left = EDGE_MARGIN if left else -EDGE_MARGIN - COLUMN_WIDTH
-	column.offset_right = EDGE_MARGIN + COLUMN_WIDTH if left else -EDGE_MARGIN
-	return column
+func _apply_layout() -> void:
+	_portrait = size.y > size.x
+	if _portrait:
+		_place_row(_enemies_box, false)
+		_place_row(_allies_box, true)
+		_set_offsets(_turn_label, 0.0, 1.0, EDGE_MARGIN, -EDGE_MARGIN, 56.0, PORTRAIT_BANNER_BOTTOM)
+	else:
+		_place_column(_allies_box, true)
+		_place_column(_enemies_box, false)
+		_set_offsets(_turn_label, 0.5, 0.5, -400.0, 400.0, 16.0, 80.0)
+	for card: CharacterCard in _cards.values():
+		_fit_card(card)
+
+func _place_column(box: BoxContainer, left: bool) -> void:
+	box.vertical = true
+	box.anchor_top = 0.0
+	box.anchor_bottom = 1.0
+	box.offset_top = COLUMN_TOP
+	box.offset_bottom = -COLUMN_BOTTOM_MARGIN
+	var x := 0.0 if left else 1.0
+	_set_offsets(box, x, x, EDGE_MARGIN if left else -EDGE_MARGIN - COLUMN_WIDTH, EDGE_MARGIN + COLUMN_WIDTH if left else -EDGE_MARGIN, box.offset_top, box.offset_bottom)
+
+func _place_row(box: BoxContainer, bottom: bool) -> void:
+	box.vertical = false
+	var y := 1.0 if bottom else 0.0
+	box.anchor_top = y
+	box.anchor_bottom = y
+	var top := -EDGE_MARGIN - ROW_HEIGHT if bottom else PORTRAIT_BANNER_BOTTOM
+	_set_offsets(box, 0.0, 1.0, 8.0, -8.0, top, top + ROW_HEIGHT)
+
+## Horizontal anchors + all offsets; vertical anchors are left to the caller.
+static func _set_offsets(control: Control, anchor_left: float, anchor_right: float, left: float, right: float, top: float, bottom: float) -> void:
+	control.anchor_left = anchor_left
+	control.anchor_right = anchor_right
+	control.offset_left = left
+	control.offset_right = right
+	control.offset_top = top
+	control.offset_bottom = bottom
+
+## Row cards hug the board (rows are docked to it), so an expanding active card grows away from it.
+func _fit_card(card: CharacterCard) -> void:
+	card.set_compact(_portrait)
+	var on_top_row := _portrait and card.get_parent() == _enemies_box
+	card.size_flags_vertical = Control.SIZE_SHRINK_END if on_top_row else Control.SIZE_SHRINK_BEGIN
+
+func _make_box() -> BoxContainer:
+	var box := BoxContainer.new()
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_theme_constant_override("separation", 10)
+	add_child(box)
+	return box
 
 func _build_turn_label() -> void:
 	_turn_label = Label.new()
@@ -165,13 +242,8 @@ func _build_turn_label() -> void:
 	_turn_label.add_theme_font_size_override("font_size", 26)
 	_turn_label.add_theme_color_override("font_outline_color", Color.BLACK)
 	_turn_label.add_theme_constant_override("outline_size", 6)
+	_turn_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(_turn_label)
-	_turn_label.anchor_left = 0.5
-	_turn_label.anchor_right = 0.5
-	_turn_label.offset_left = -400.0
-	_turn_label.offset_right = 400.0
-	_turn_label.offset_top = 16.0
-	_turn_label.offset_bottom = 56.0
 
 func _build_level_label() -> void:
 	_level_label = Label.new()

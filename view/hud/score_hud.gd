@@ -1,8 +1,11 @@
 ## Score + combo readout: the number rolls up smoothly instead of jumping,
 ## and punches bigger the higher the combo — the usual gacha/mobile counter
-## feel.
+## feel. Always centered above the board (dock_to_board).
 class_name ScoreHud
 extends Control
+
+const TOP := 40.0
+const DOCK_GAP := 8.0
 
 @onready var _score_label: Label = $ScoreLabel
 @onready var _combo_label: Label = $ComboLabel
@@ -24,6 +27,15 @@ func setup(score_tracker: ScoreTracker) -> void:
 	_combo_label.modulate.a = 0.0
 	score_tracker.score_awarded.connect(_on_score_awarded)
 	score_tracker.combo_reset.connect(_on_combo_reset)
+
+## Reserved band at the top of the screen (GameRoot._free_screen_rect).
+func hud_rects() -> Array[Rect2]:
+	var screen := get_viewport_rect().size
+	return [Rect2(Vector2((screen.x - size.x) / 2.0, TOP), size)]
+
+## Text over falling tiles is unreadable, so the score stays above the spawn lane.
+func dock_to_board(board_rect: Rect2, spawn_lane: float) -> void:
+	position = Vector2(board_rect.get_center().x - size.x / 2.0, maxf(TOP, board_rect.position.y - spawn_lane - size.y - DOCK_GAP))
 
 func _on_score_awarded(amount: int, multiplier: int, _cell: GridCell, _entity: BoardEntity) -> void:
 	_target_score += amount
@@ -79,7 +91,8 @@ func _flush_popup() -> void:
 	var popup := Label.new()
 	popup.text = "+%d" % amount
 	popup.add_theme_color_override("font_color", Color(1, 0.85, 0.2, 1))
-	popup.position = position + _score_label.position + Vector2(_score_label.size.x + 6.0, 0.0)
+	var text_end := (_score_label.size.x + _score_label.get_minimum_size().x) / 2.0
+	popup.position = position + _score_label.position + Vector2(text_end + 6.0, 0.0)
 	get_parent().add_child(popup)
 	var tween := popup.create_tween()
 	tween.set_parallel(true)

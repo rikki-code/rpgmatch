@@ -6,7 +6,7 @@
 class_name EncounterGenerator
 extends RefCounted
 
-## Level at which each slot on a side opens: 2nd at L3, 3rd at L10, all 5 at L20.
+## Level at which each slot on a side opens (index + 1 = side size).
 const SLOT_UNLOCK_LEVELS: Array[int] = [1, 3, 6, 10, 15]
 
 static func build_side(humans: Array[UnitType], catalog: Array[UnitType], side: Character.Side, level: int, budget: int, rng: RandomNumberGenerator) -> Array[Character]:

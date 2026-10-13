@@ -14,6 +14,10 @@ const ALLY_HP_COLOR := Color(0.35, 0.8, 0.4)
 const ENEMY_HP_COLOR := Color(0.85, 0.3, 0.3)
 const SHIELD_COLOR := Color(0.45, 0.7, 1.0)
 const DEAD_MODULATE := Color(1, 1, 1, 0.35)
+const WIDTH := 230.0
+const COMPACT_WIDTH := 196.0
+const BUTTON_WIDTH := 95.0
+const COMPACT_BUTTON_WIDTH := 78.0
 
 var character: Character
 var _style: StyleBoxFlat
@@ -32,7 +36,7 @@ var _targeted_own_side := false
 
 func setup(p_character: Character, actions: Array[BattleAction]) -> void:
 	character = p_character
-	custom_minimum_size = Vector2(230, 0)
+	custom_minimum_size = Vector2(WIDTH, 0)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_style = StyleBoxFlat.new()
 	_style.bg_color = Color(0.09, 0.09, 0.12, 0.92)
@@ -162,10 +166,16 @@ func _make_label(parent: Control, font_size: int) -> Label:
 	parent.add_child(label)
 	return label
 
+## Narrower card for a row of five on a portrait screen.
+func set_compact(compact: bool) -> void:
+	custom_minimum_size.x = COMPACT_WIDTH if compact else WIDTH
+	for button: Button in _action_buttons.values():
+		button.custom_minimum_size.x = COMPACT_BUTTON_WIDTH if compact else BUTTON_WIDTH
+
 func _make_action_button(action: BattleAction) -> void:
 	var button := Button.new()
 	button.text = action.display_name()
-	button.custom_minimum_size = Vector2(95, 36)
+	button.custom_minimum_size = Vector2(BUTTON_WIDTH, 36)
 	button.pressed.connect(func() -> void: action_picked.emit(action))
 	_action_bar.add_child(button)
 	_action_buttons[action] = button
