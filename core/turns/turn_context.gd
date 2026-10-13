@@ -13,6 +13,7 @@ var score_tracker: ScoreTracker
 ## Lets a phase make a board move itself (AI turn, see PhaseCharacterInput).
 var swap_controller: SwapController
 var detonate_controller: DetonateController
+var shuffle_controller: ShuffleController
 ## Null outside battle mode — battle-only phases assume it's set when present.
 var battle: BattleContext
 

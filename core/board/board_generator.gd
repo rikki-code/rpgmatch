@@ -13,12 +13,12 @@ static func generate(params: WorldGenParams) -> BoardGraph:
 		rng.randomize()
 
 	var graph := BoardGraph.new(params.width, params.height)
-	graph.color_count = params.color_count
 	graph.arrow_blaster_spawn_chance = params.arrow_blaster_spawn_chance
 	graph.bomb_spawn_chance = params.bomb_spawn_chance
 	graph.color_bomb_spawn_chance = params.color_bomb_spawn_chance
 	graph.prisms_spawn_chance = params.prisms_spawn_chance
 	graph.rng = rng
+	graph.colors = _random_colors(params.color_count, rng)
 
 	for y in range(params.height):
 		for x in range(params.width):
@@ -42,12 +42,12 @@ static func _spawn_tiles(graph: BoardGraph, rng: RandomNumberGenerator) -> void:
 			var cell := graph.get_cell(Vector2i(x, y))
 			if cell == null or not cell.kind.can_hold_tile():
 				continue
-			var forbidden := _colors_that_would_match(cell)
-			cell.occupant = _make_tile(_pick_color(graph.color_count, forbidden, rng))
+			var forbidden := colors_that_would_match(cell)
+			cell.occupant = _make_tile(pick_color(graph.colors, forbidden, rng))
 
 ## Avoids a pre-made match ≥3 at generation time by forbidding the color of
 ## any already-placed pair directly above or to the left.
-static func _colors_that_would_match(cell: GridCell) -> Array[int]:
+static func colors_that_would_match(cell: GridCell) -> Array[int]:
 	var forbidden: Array[int] = []
 	var left1 := cell.neighbor(GridDirection.Dir.LEFT)
 	var left2: GridCell = left1.neighbor(GridDirection.Dir.LEFT) if left1 != null else null
@@ -67,13 +67,24 @@ static func _colors_that_would_match(cell: GridCell) -> Array[int]:
 
 	return forbidden
 
-static func _pick_color(color_count: int, forbidden: Array[int], rng: RandomNumberGenerator) -> int:
-	var color := rng.randi_range(0, color_count - 1)
+static func pick_color(colors: Array[int], forbidden: Array[int], rng: RandomNumberGenerator) -> int:
+	var color := colors[rng.randi_range(0, colors.size() - 1)]
 	var attempts := 0
 	while forbidden.has(color) and attempts < 20:
-		color = rng.randi_range(0, color_count - 1)
+		color = colors[rng.randi_range(0, colors.size() - 1)]
 		attempts += 1
 	return color
+
+## A different subset of the MAX_COLORS palette every generation.
+static func _random_colors(count: int, rng: RandomNumberGenerator) -> Array[int]:
+	var all: Array[int] = []
+	for color in range(BoardGraph.MAX_COLORS):
+		all.append(color)
+	var picked: Array[int] = []
+	for color in _shuffled(all, rng).slice(0, clampi(count, 1, BoardGraph.MAX_COLORS)):
+		picked.append(color)
+	picked.sort()
+	return picked
 
 static func _make_tile(color: int) -> Tile:
 	return Tile.make_normal(color)

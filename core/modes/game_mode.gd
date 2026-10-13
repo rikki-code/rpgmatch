@@ -13,6 +13,11 @@ func display_name() -> String:
 func build_phases(_ctx: TurnContext) -> Array[TurnPhase]:
 	return []
 
+## Generation params for a fresh board in this mode; `base` = the player's
+## settings (menu), which a mode may scale down from.
+func board_params(base: WorldGenParams) -> WorldGenParams:
+	return base
+
 func shows_score_hud() -> bool:
 	return true
 

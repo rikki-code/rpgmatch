@@ -215,7 +215,7 @@ func refresh(effect: Effect = null, instant: bool = false) -> void:
 
 ## Waits out TileView's fuse-ignite beat so the flash reads as "fuse caught, then boom", not the reverse.
 func _play_delayed_explosion(cells: Array, time = TileView.IGNITE_TIME) -> void:
-	await get_tree().create_timer(time).timeout
+	await create_tween().tween_interval(time).finished
 	for cell: GridCell in cells:
 		_play_explosion(cell.position)
 
@@ -231,7 +231,7 @@ func _play_arrow_blast(effect: EffectArrowBlast) -> void:
 	_play_delayed_explosion(effect.cells)
 	if effect.cells.is_empty():
 		return
-	await get_tree().create_timer(TileView.IGNITE_TIME).timeout
+	await create_tween().tween_interval(TileView.IGNITE_TIME).finished
 	var varies_x := effect.axis == ArrowBlasterCore.Axis.ROW
 	var min_pos := effect.origin.position
 	var max_pos := effect.origin.position

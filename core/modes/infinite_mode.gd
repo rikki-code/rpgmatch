@@ -7,6 +7,7 @@ func display_name() -> String:
 
 func build_phases(ctx: TurnContext) -> Array[TurnPhase]:
 	ctx.battle = null
+	ctx.score_tracker.combo_step = 1.0
 	return [
 		PhasePlayerInput.new(),
 		PhaseEnvironmentStub.new(),

@@ -4,6 +4,8 @@ extends Effect
 var cell: GridCell
 ## Set by execute() — lets score/quest listeners read it post-hoc.
 var removed_entity: BoardEntity
+## True when cleared by a match group, false for blasts/chains (see ScoreTracker).
+var from_match := false
 
 func _init(p_cell: GridCell) -> void:
 	cell = p_cell

@@ -115,7 +115,7 @@ func _build() -> void:
 	_settings_page = _page(pages, "Settings")
 	_width_spin = _spin(_settings_page, "Width", 4, 16)
 	_height_spin = _spin(_settings_page, "Height", 4, 12)
-	_colors_spin = _spin(_settings_page, "Tile colors", 3, 8)
+	_colors_spin = _spin(_settings_page, "Tile colors", 3, BoardGraph.MAX_COLORS)
 	_pits_spin = _spin(_settings_page, "Holes", 0, 40)
 	_button(_settings_page, "Apply (new board)", _apply_settings)
 	_button(_settings_page, "Back", func() -> void: _show_page(_main_page))

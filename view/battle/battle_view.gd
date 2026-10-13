@@ -69,55 +69,82 @@ func _on_turn_started(character: Character) -> void:
 	for other: Character in _cards:
 		_cards[other].set_active(other == character, other.controller.is_human())
 	if character.controller.is_human():
-		if _battle.human_target == null or not _battle.human_target.is_alive():
-			var first := _battle.first_living(_battle.opponents_of(character))
-			if first != null:
-				_battle.select_target(first)
-		_turn_label.text = "Your turn: pick an action, click a target, swap tiles"
+		_retarget_for(BattleContext.ActionType.ATTACK)
+		_turn_label.text = "Your turn: Attack/Defend, click any card as the target, then swap tiles"
 	else:
 		_turn_label.text = "%s's turn..." % character.display_name
+	_update_target_marks()
 
 func _on_action_selected(character: Character, type: BattleContext.ActionType) -> void:
 	_cards[character].set_intent(type)
+	_update_target_marks()
 	if not character.controller.is_human():
 		var verb := "attack" if type == BattleContext.ActionType.ATTACK else "defend"
 		_turn_label.text = "%s prepares to %s" % [character.display_name, verb]
 
-func _on_target_selected(target: Character) -> void:
-	for character: Character in _cards:
-		if character.side == Character.Side.ENEMY:
-			_cards[character].set_targeted(character == target)
+func _on_target_selected(_target: Character) -> void:
+	_update_target_marks()
 
 func _on_score_awarded(_amount: int, _multiplier: int, _cell: GridCell, _entity: BoardEntity) -> void:
 	if not visible or _battle == null or _battle.active_character == null:
 		return
 	var actor := _battle.active_character
-	_cards[actor].set_power(actor.power_from_points(_ctx.score_tracker.turn_points), _ctx.score_tracker.combo_multiplier)
+	_cards[actor].set_power(_battle.power_of(actor, _ctx.score_tracker), _ctx.score_tracker.combo_factor())
 
 func _on_action_resolved(action: CombatAction, damage: int, is_crit: bool) -> void:
 	var target_card: CharacterCard = _cards[action.target]
 	target_card.play_hit(damage, is_crit)
 	if not action.target.is_alive():
-		target_card.set_targeted(false)
+		_update_target_marks()
 	_turn_label.text = "%s hits %s for %d%s" % [action.actor.display_name, action.target.display_name, damage, "  CRIT!" if is_crit else ""]
 
 func _on_shield_gained(character: Character, amount: int) -> void:
 	_cards[character].play_shield(amount)
-	_turn_label.text = "%s raises a shield (+%d)" % [character.display_name, amount]
+	var actor := _battle.active_character
+	if character == actor:
+		_turn_label.text = "%s raises a shield (+%d)" % [actor.display_name, amount]
+	else:
+		_turn_label.text = "%s shields %s (+%d)" % [actor.display_name, character.display_name, amount]
+
+## On the human's turn: red border = attack target, blue = shield target.
+func _update_target_marks() -> void:
+	var actor := _battle.active_character
+	var human_turn := actor != null and actor.controller.is_human() and not _battle.ended
+	var defending := _battle.pending_action == BattleContext.ActionType.DEFEND
+	for character: Character in _cards:
+		var marked := human_turn and character == _battle.human_target
+		_cards[character].set_targeted(marked and not defending)
+		_cards[character].set_shield_targeted(marked and defending)
+
+## Sensible default when the action changes: attack -> an opponent, defend
+## -> self. A card click afterwards can still pick anyone (friendly fire).
+func _retarget_for(type: BattleContext.ActionType) -> void:
+	var actor := _battle.active_character
+	var target := _battle.human_target
+	var valid := target != null and target.is_alive()
+	if type == BattleContext.ActionType.ATTACK and (not valid or target.side == actor.side):
+		var first := _battle.first_living(_battle.opponents_of(actor))
+		if first != null:
+			_battle.select_target(first)
+	elif type == BattleContext.ActionType.DEFEND and (not valid or target.side != actor.side):
+		_battle.select_target(actor)
 
 func _on_battle_ended(victory: bool) -> void:
 	for character: Character in _cards:
 		_cards[character].set_active(false, false)
+	_update_target_marks()
 	_result_label.text = "Victory!" if victory else "Defeat"
 	_continue_button.text = "Next battle" if victory else "Retry"
 	_overlay.visible = true
 
 func _on_card_clicked(character: Character) -> void:
-	if character.side == Character.Side.ENEMY and _ctx.awaiting_player_input:
+	var actor := _battle.active_character
+	if _ctx.awaiting_player_input and actor != null and actor.controller.is_human():
 		_battle.select_target(character)
 
 func _on_action_picked(type: BattleContext.ActionType) -> void:
 	if _ctx.awaiting_player_input and _battle.active_character.controller.is_human():
+		_retarget_for(type)
 		_battle.select_action(type)
 
 func _add_card(character: Character, column: VBoxContainer) -> void:

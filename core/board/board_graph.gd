@@ -7,7 +7,11 @@ extends RefCounted
 
 var width: int
 var height: int
-var color_count: int = 5
+## Tile color ids exist 0..MAX_COLORS-1 (one per tile scene in the view).
+const MAX_COLORS := 6
+
+## Which color ids this board plays with — a random subset per generation.
+var colors: Array[int] = [0, 1, 2, 3, 4]
 var prisms_spawn_chance: float = 0.0
 var arrow_blaster_spawn_chance: float = 0.0
 var bomb_spawn_chance: float = 0.0
@@ -19,6 +23,9 @@ var cells: Dictionary = {}  # Vector2i -> GridCell
 func _init(p_width: int, p_height: int) -> void:
 	width = p_width
 	height = p_height
+
+func random_color() -> int:
+	return colors[rng.randi_range(0, colors.size() - 1)]
 
 func add_cell(cell: GridCell) -> void:
 	cells[cell.position] = cell

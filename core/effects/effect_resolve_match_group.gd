@@ -36,7 +36,9 @@ func execute(_board: BoardGraph) -> Array[Effect]:
 	var cells := group.cells
 	var effects: Array[Effect] = [EffectMatchLightning.new(cells)]
 	for cell in cells:
-		effects.append(EffectDestroyTile.new(cell))
+		var destroy := EffectDestroyTile.new(cell)
+		destroy.from_match = true
+		effects.append(destroy)
 
 	if cells.size() == NORMAL_MATCH_SIZE:
 		return effects

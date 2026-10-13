@@ -28,7 +28,9 @@ var _pending_mode: GameMode
 func _ready() -> void:
 	if GameSession.params == null:
 		GameSession.params = world_gen_params.duplicate() if world_gen_params != null else WorldGenParams.new()
-	board = BoardGenerator.generate(GameSession.params)
+	battle_mode.level = GameSession.battle_level
+	var start_mode := available_modes[GameSession.mode_index]
+	board = BoardGenerator.generate(start_mode.board_params(GameSession.params))
 
 	ctx = TurnContext.new(board)
 	ctx.resolver = EffectResolver.new(board)
@@ -37,6 +39,7 @@ func _ready() -> void:
 	ctx.swap_controller = swap_controller
 	detonate_controller = DetonateController.new(ctx)
 	ctx.detonate_controller = detonate_controller
+	ctx.shuffle_controller = ShuffleController.new(ctx)
 
 	quest_manager = QuestManager.new(board, ctx.resolver, RandomQuestGenerator.new())
 	quest_manager.fill_from_generator()
@@ -52,6 +55,7 @@ func _ready() -> void:
 	swap_controller.swap_rejected.connect(func(_a: GridCell, _b: GridCell) -> void: board_view.refresh())
 	swap_controller.tiles_combined.connect(func(_a: GridCell, _b: GridCell) -> void: _after_board_move())
 	detonate_controller.detonated.connect(func(_cell: GridCell) -> void: _after_board_move())
+	ctx.shuffle_controller.shuffled.connect(_after_board_move)
 
 	camera = $Camera3D
 	get_tree().root.size_changed.connect(_refit_camera)
@@ -94,6 +98,12 @@ func _ready() -> void:
 		_restart()
 	)
 	battle_view.exit_requested.connect(func() -> void: switch_mode(available_modes[0]))
+
+	var move_assist := MoveAssist.new()
+	$UILayer.add_child(move_assist)
+	$UILayer.move_child(move_assist, $UILayer/GameMenu.get_index())
+	move_assist.setup(ctx, editor_mode_controller)
+	move_assist.hint_requested.connect(func(move: MoveFinder.Move) -> void: _highlight_move(move.cell_a, move.cell_b))
 
 	game_menu = $UILayer/GameMenu
 	var mode_names: Array[String] = []
@@ -156,7 +166,7 @@ func _apply_mode(mode: GameMode) -> void:
 	_refit_camera()
 	if ctx.battle != null:
 		battle_view.setup(ctx)
-		ctx.battle.ai_move_chosen.connect(_show_ai_move)
+		ctx.battle.ai_move_chosen.connect(_highlight_move)
 	# With the editor open the new mode must not act (e.g. an AI turn) until
 	# the edits are settled.
 	if not editor_mode_controller.active:
@@ -167,8 +177,8 @@ func _apply_mode(mode: GameMode) -> void:
 func _start_turn_manager() -> void:
 	turn_manager.start()
 
-## Highlights what an AI character is about to swap/match/detonate first.
-func _show_ai_move(cell_a: GridCell, cell_b: GridCell) -> void:
+## Highlights a move: what an AI is about to play, or the idle-player hint.
+func _highlight_move(cell_a: GridCell, cell_b: GridCell) -> void:
 	if cell_b == null:
 		board_view.set_match_preview([cell_a.occupant])
 		return

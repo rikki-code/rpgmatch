@@ -25,7 +25,7 @@ func _init(p_cell: GridCell, p_fall_distance: int = 0, p_reveal_distance: int = 
 func execute(board: BoardGraph) -> Array[Effect]:
 	if cell.occupant != null or not cell.kind.can_hold_tile():
 		return []
-	var color := board.rng.randi_range(0, board.color_count - 1)
+	var color := board.random_color()
 
 	if board.arrow_blaster_spawn_chance > 0.0 and board.rng.randf() < board.arrow_blaster_spawn_chance:
 		var axis = ArrowBlasterCore.Axis.ROW if board.rng.randi_range(0, 1) == 0 else ArrowBlasterCore.Axis.COLUMN

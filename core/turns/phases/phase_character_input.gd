@@ -1,7 +1,8 @@
 ## The active character's board move. A human gets board input unlocked
-## and the turn waits for their swap; an AI picks its action and the best
-## swap itself, announced first via BattleContext.ai_move_chosen so the
-## view can show it before it happens.
+## and the turn waits for their swap; an AI picks its action and a move
+## itself (its controller's skill decides how good), announced first via
+## BattleContext.ai_move_chosen so the view can show it before it happens.
+## With no move left the AI shuffles first, like the player's Shuffle button.
 class_name PhaseCharacterInput
 extends TurnPhase
 
@@ -20,7 +21,12 @@ func execute(ctx: TurnContext) -> void:
 		return
 	await ctx.animation_driver.await_delay(AI_THINK_SECONDS)
 	ctx.battle.select_action(actor.controller.choose_action_type(actor, ctx.battle))
-	var move := AiMovePicker.best_move(ctx.board)
+	var rng := ctx.battle.resolver.rng
+	var move := actor.controller.choose_move(ctx.board, ctx.battle, rng)
+	if move == null:
+		ctx.shuffle_controller.perform_shuffle()
+		await ctx.animation_driver.await_delay(AI_THINK_SECONDS)
+		move = actor.controller.choose_move(ctx.board, ctx.battle, rng)
 	if move == null:
 		ctx.turn_manager.notify_phase_done()
 		return
@@ -28,7 +34,7 @@ func execute(ctx: TurnContext) -> void:
 	await ctx.animation_driver.await_delay(AI_PREVIEW_SECONDS)
 	# Both perform_* hand the turn on themselves; only a refused move doesn't.
 	var done: bool
-	if move.kind == AiMovePicker.Move.Kind.DETONATE:
+	if move.kind == MoveFinder.Move.Kind.DETONATE:
 		done = await ctx.detonate_controller.perform_detonate(move.cell_a)
 	else:
 		done = await ctx.swap_controller.perform_swap(move.cell_a, move.cell_b)

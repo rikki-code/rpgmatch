@@ -1,6 +1,7 @@
 ## One character's card: name, HP bar, shield, live turn power while it's
 ## their turn, Attack/Defend menu (human, own turn only), floating
-## damage/shield numbers. Clicking the card emits `clicked` (target pick).
+## damage/shield numbers. Clicking the card emits `clicked` (attack target
+## on an enemy, shield target on an ally).
 class_name CharacterCard
 extends PanelContainer
 
@@ -27,6 +28,7 @@ var _attack_button: Button
 var _defend_button: Button
 var _active := false
 var _targeted := false
+var _shield_targeted := false
 
 func setup(p_character: Character) -> void:
 	character = p_character
@@ -101,14 +103,18 @@ func set_targeted(targeted: bool) -> void:
 	_targeted = targeted
 	_update_border()
 
+func set_shield_targeted(targeted: bool) -> void:
+	_shield_targeted = targeted
+	_update_border()
+
 func set_intent(type: BattleContext.ActionType) -> void:
 	var attacking := type == BattleContext.ActionType.ATTACK
 	_intent_label.text = "Action: Attack" if attacking else "Action: Defend"
 	_attack_button.modulate = BORDER_ACTIVE if attacking else Color.WHITE
 	_defend_button.modulate = Color.WHITE if attacking else SHIELD_COLOR
 
-func set_power(power: int, combo: int) -> void:
-	_power_label.text = "Power %d" % power + ("   x%d combo" % combo if combo > 1 else "")
+func set_power(power: int, combo: float) -> void:
+	_power_label.text = "Power %d" % power + ("   x%.1f combo" % combo if combo > 1.0 else "")
 	if power > 0:
 		_power_label.pivot_offset = _power_label.size / 2.0
 		_power_label.scale = Vector2.ONE * 1.25
@@ -128,7 +134,14 @@ func play_shield(amount: int) -> void:
 	_float_text("+%d shield" % amount, SHIELD_COLOR)
 
 func _update_border() -> void:
-	_style.border_color = BORDER_ACTIVE if _active else (BORDER_TARGET if _targeted else BORDER_IDLE)
+	if _active:
+		_style.border_color = BORDER_ACTIVE
+	elif _targeted:
+		_style.border_color = BORDER_TARGET
+	elif _shield_targeted:
+		_style.border_color = SHIELD_COLOR
+	else:
+		_style.border_color = BORDER_IDLE
 
 ## top_level so the parent containers don't lay it out — it floats freely.
 func _float_text(text: String, color: Color) -> void:

@@ -12,5 +12,13 @@ func is_human() -> bool:
 func choose_action_type(_actor: Character, _battle: BattleContext) -> BattleContext.ActionType:
 	return BattleContext.ActionType.ATTACK
 
+## Board move for a non-human turn; null = no legal move.
+func choose_move(board: BoardGraph, battle: BattleContext, _rng: RandomNumberGenerator) -> MoveFinder.Move:
+	return MoveFinder.best_move(board, battle.power_multiplier)
+
+## Who gets the shield when the action is DEFEND — self or an ally.
+func choose_shield_target(actor: Character, _battle: BattleContext) -> Character:
+	return actor
+
 func choose_target(actor: Character, battle: BattleContext) -> Character:
 	return battle.first_living(battle.opponents_of(actor))

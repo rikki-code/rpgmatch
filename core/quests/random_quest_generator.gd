@@ -55,7 +55,7 @@ func _candidate_kinds(board: BoardGraph, excluded: Array[StringName]) -> Array[S
 			return bonus_pool
 
 	var color_pool: Array[StringName] = []
-	for color in range(board.color_count):
+	for color in board.colors:
 		var kind := StringName("color_%d" % color)
 		if not excluded.has(kind):
 			color_pool.append(kind)
