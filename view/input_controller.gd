@@ -10,6 +10,7 @@ extends Node3D
 const DRAG_COMMIT_THRESHOLD := 0.35
 const DRAG_LIFT_BONUS := 0.55
 const DRAG_FOLLOW_TIME := 0.08
+const DOUBLE_TAP_MSEC := 400
 
 var camera: Camera3D
 var board_view: BoardView3D
@@ -26,6 +27,8 @@ var _companion_cell: GridCell
 var _companion_tile: Tile
 var _spring_tweens: Dictionary = {}  # Tile -> Tween
 var _editor_active: bool = false
+var _last_tap_cell: GridCell
+var _last_tap_msec := 0
 
 func setup(p_camera: Camera3D, p_board_view: BoardView3D, p_board: BoardGraph, p_swap_controller: SwapController, p_detonate_controller: DetonateController) -> void:
 	camera = p_camera
@@ -42,7 +45,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
-			if event.double_click:
+			if _is_double_tap(event.position):
+				_last_tap_cell = null
 				_try_detonate(event.position)
 			else:
 				_begin_drag(event.position)
@@ -51,8 +55,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventMouseMotion and _drag_cell != null:
 		_update_drag(event.position)
 
-## Double-click on a bomb blows it up directly instead of starting a drag —
-## a separate player action from swapping (see DetonateController).
+# Not InputEventMouse.double_click: touch-emulated mouse events on mobile and web don't set it.
+func _is_double_tap(screen_pos: Vector2) -> bool:
+	if _last_tap_cell == null or Time.get_ticks_msec() - _last_tap_msec > DOUBLE_TAP_MSEC:
+		return false
+	return board.get_cell(BoardGeometry.world_to_cell(_ground_plane_point(screen_pos))) == _last_tap_cell
+
+## Double-tap on a bomb blows it up directly instead of starting a drag (see DetonateController).
 func _try_detonate(screen_pos: Vector2) -> void:
 	if not swap_controller.ctx.awaiting_player_input:
 		return
@@ -204,7 +213,11 @@ func _end_drag() -> void:
 	board_view.tiles.release_all()
 	board_view.tiles.set_match_preview([])
 	if swap_neighbor != null:
+		_last_tap_cell = null
 		swap_controller.try_swap(drag_cell, swap_neighbor)
+	else:
+		_last_tap_cell = drag_cell
+		_last_tap_msec = Time.get_ticks_msec()
 
 	board_view.refresh()
 	_drag_cell = null

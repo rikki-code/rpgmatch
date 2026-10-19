@@ -123,14 +123,17 @@ func _ready() -> void:
 		mode_names.append(mode.display_name())
 	game_menu.setup(mode_names, GameSession.mode_index, GameSession.params)
 	game_menu.editor_selected.connect(func() -> void:
-		if not editor_mode_controller.active:
-			editor_mode_controller.toggle()
+		editor_mode_controller.toggle()
 		game_menu.show_selected(GameSession.mode_index, editor_mode_controller.active)
 	)
 	editor_mode_controller.mode_changed.connect(func(active: bool) -> void:
 		game_menu.show_selected(GameSession.mode_index, active)
 	)
-	game_menu.mode_selected.connect(func(index: int) -> void: switch_mode(available_modes[index]))
+	game_menu.mode_selected.connect(func(index: int) -> void:
+		switch_mode(available_modes[index])
+		if editor_mode_controller.active:
+			editor_mode_controller.toggle()
+	)
 	game_menu.settings_applied.connect(func(params: WorldGenParams) -> void:
 		GameSession.params = params
 		_restart()
