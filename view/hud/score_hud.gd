@@ -10,19 +10,17 @@ const DOCK_GAP := 8.0
 @onready var _score_label: Label = $ScoreLabel
 @onready var _combo_label: Label = $ComboLabel
 
-var _target_score: int = 0
-var _displayed_score: int = 0
-var _count_tween: Tween
-var _score_punch_tween: Tween
+var _score_tracker: ScoreTracker
+var _score_counter: RollingCounter
 var _combo_punch_tween: Tween
 ## Awards landing in the same frame (a cascade wave) sum into one popup
 ## instead of spawning one each — flushed deferred, once per frame.
 var _pending_popup_amount: int = 0
 
 func setup(score_tracker: ScoreTracker) -> void:
-	_score_label.pivot_offset = _score_label.size / 2.0
+	_score_tracker = score_tracker
+	_score_counter = RollingCounter.new(_score_label, "Score: %d")
 	_combo_label.pivot_offset = _combo_label.size / 2.0
-	_score_label.text = "Score: 0"
 	_combo_label.text = ""
 	_combo_label.modulate.a = 0.0
 	score_tracker.score_awarded.connect(_on_score_awarded)
@@ -38,34 +36,12 @@ func dock_to_board(board_rect: Rect2, spawn_lane: float) -> void:
 	position = Vector2(board_rect.get_center().x - size.x / 2.0, maxf(TOP, board_rect.position.y - spawn_lane - size.y - DOCK_GAP))
 
 func _on_score_awarded(amount: int, multiplier: int, _cell: GridCell, _entity: BoardEntity) -> void:
-	_target_score += amount
-	_roll_score_to_target()
-	_punch_score(multiplier)
+	_score_counter.roll_to(_score_tracker.total_score, clampf(1.15 + multiplier * 0.08, 1.15, 1.7))
 	if multiplier > 1:
 		_combo_label.text = "Combo x%d!" % multiplier
 		_combo_label.modulate.a = 1.0
 		_punch_combo()
 	_queue_popup(amount)
-
-## Restarting mid-roll (a fast combo) just redirects the tween, so a burst
-## of awards reads as one accelerating count instead of a stutter.
-func _roll_score_to_target() -> void:
-	if _count_tween != null and _count_tween.is_valid():
-		_count_tween.kill()
-	var duration := clampf(float(_target_score - _displayed_score) / 300.0, 0.12, 0.5)
-	_count_tween = create_tween()
-	_count_tween.tween_method(_set_displayed_score, _displayed_score, _target_score, duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-
-func _set_displayed_score(value: int) -> void:
-	_displayed_score = value
-	_score_label.text = "Score: %d" % _displayed_score
-
-func _punch_score(multiplier: int) -> void:
-	if _score_punch_tween != null and _score_punch_tween.is_valid():
-		_score_punch_tween.kill()
-	_score_label.scale = Vector2.ONE * clampf(1.15 + multiplier * 0.08, 1.15, 1.7)
-	_score_punch_tween = create_tween()
-	_score_punch_tween.tween_property(_score_label, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 func _punch_combo() -> void:
 	if _combo_punch_tween != null and _combo_punch_tween.is_valid():
@@ -75,6 +51,9 @@ func _punch_combo() -> void:
 	_combo_punch_tween.tween_property(_combo_label, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 func _queue_popup(amount: int) -> void:
+	# Hidden in battle mode; popups would float at this node's idle corner position.
+	if not is_visible_in_tree():
+		return
 	var was_pending := _pending_popup_amount != 0
 	_pending_popup_amount += amount
 	if not was_pending:

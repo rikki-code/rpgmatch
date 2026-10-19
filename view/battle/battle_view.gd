@@ -10,12 +10,19 @@ extends Control
 signal continue_requested(victory: bool)
 signal exit_requested
 
+## Charge aura: visible from the first point, full once the action would
+## move half the target's max HP — relative, so it reads the same at any level.
+const MIN_CHARGE := 0.35
+const FULL_CHARGE_HP_SHARE := 0.5
 const COLUMN_WIDTH := 250.0
 const EDGE_MARGIN := 24.0
 ## Fits the tallest (active, human) card.
 const ROW_HEIGHT := 240.0
 const PORTRAIT_BANNER_BOTTOM := 140.0
 const DOCK_GAP := 12.0
+const ROW_SEPARATION := 6.0
+## Keeps the portrait banner clear of GameMenu's top-right button.
+const MENU_BUTTON_CLEARANCE := GameMenu.OPEN_BUTTON_SIZE + 24.0
 const COLUMN_TOP := 80.0
 const COLUMN_BOTTOM_MARGIN := 120.0
 
@@ -29,6 +36,7 @@ var _turn_label: Label
 var _level_label: Label
 var _continue_button: Button
 var _overlay: ColorRect
+var _fx: BattleFx
 var _result_label: Label
 
 func _ready() -> void:
@@ -37,6 +45,8 @@ func _ready() -> void:
 	_enemies_box = _make_box()
 	_build_turn_label()
 	_build_level_label()
+	_fx = BattleFx.new()
+	add_child(_fx)
 	_build_overlay()
 	resized.connect(_apply_layout)
 	_apply_layout()
@@ -52,6 +62,7 @@ func setup(ctx: TurnContext) -> void:
 	for character in _battle.enemies:
 		_add_card(character, _enemies_box)
 	_overlay.visible = false
+	_apply_layout()
 	_turn_label.text = ""
 	_level_label.text = "Level %d" % _battle.level
 
@@ -59,6 +70,7 @@ func setup(ctx: TurnContext) -> void:
 	_battle.action_selected.connect(_on_action_selected)
 	_battle.target_selected.connect(_on_target_selected)
 	_battle.shield_gained.connect(_on_shield_gained)
+	_battle.action_launched.connect(_on_action_launched)
 	_battle.battle_ended.connect(_on_battle_ended)
 	_battle.resolver.action_resolved.connect(_on_action_resolved)
 	if not ctx.score_tracker.score_awarded.is_connected(_on_score_awarded):
@@ -115,6 +127,7 @@ func _on_turn_started(character: Character) -> void:
 
 func _on_action_selected(character: Character, action: BattleAction) -> void:
 	_update_target_marks()
+	_refresh_charge()
 	if not character.controller.is_human() and _battle.pending_target != null:
 		_turn_label.text = "%s prepares to %s %s" % [character.display_name, action.display_name().to_lower(), _battle.pending_target.display_name]
 
@@ -126,6 +139,7 @@ func _on_score_awarded(_amount: int, _wave: int, _cell: GridCell, _entity: Board
 		return
 	var actor := _battle.active_character
 	_cards[actor].set_power(_battle.power_of(actor, _ctx.score_tracker), _ctx.score_tracker.combo_factor())
+	_refresh_charge()
 
 func _on_action_resolved(action: CombatAction, damage: int, is_crit: bool) -> void:
 	var target_card: CharacterCard = _cards[action.target]
@@ -133,6 +147,29 @@ func _on_action_resolved(action: CombatAction, damage: int, is_crit: bool) -> vo
 	if not action.target.is_alive():
 		_update_target_marks()
 	_turn_label.text = "%s hits %s for %d%s" % [action.actor.display_name, action.target.display_name, damage, "  CRIT!" if is_crit else ""]
+
+func _on_action_launched(actor: Character, target: Character, action: BattleAction) -> void:
+	var intensity := _charge_intensity()
+	# A self-cast keeps glowing until its burst; set_active(false) clears it at turn end.
+	if target != actor:
+		_cards[actor].set_charge(0.0, Color.WHITE)
+	_fx.play_action(_cards[actor].get_global_rect(), _cards[target].get_global_rect(), BattleFx.color_for(action), PhaseResolveCombatAction.LAUNCH_SECONDS, intensity)
+
+func _refresh_charge() -> void:
+	var actor := _battle.active_character
+	if actor != null and _battle.pending_action != null:
+		_cards[actor].set_charge(_charge_intensity(), BattleFx.color_for(_battle.pending_action))
+
+## One 0..1 scale for every power-driven visual (aura, bolt, burst, hit): the
+## pending action's power relative to its target, 0 when there's none.
+func _charge_intensity() -> float:
+	var actor := _battle.active_character
+	var power := _battle.power_of(actor, _ctx.score_tracker)
+	if power <= 0:
+		return 0.0
+	var target := _battle.pending_target if _battle.pending_target != null else actor
+	return clampf(MIN_CHARGE + (1.0 - MIN_CHARGE) * power / (target.max_hp * FULL_CHARGE_HP_SHARE), MIN_CHARGE, 1.0)
+
 
 func _on_shield_gained(character: Character, amount: int) -> void:
 	_cards[character].play_shield(amount)
@@ -187,7 +224,7 @@ func _apply_layout() -> void:
 	if _portrait:
 		_place_row(_enemies_box, false)
 		_place_row(_allies_box, true)
-		_set_offsets(_turn_label, 0.0, 1.0, EDGE_MARGIN, -EDGE_MARGIN, 56.0, PORTRAIT_BANNER_BOTTOM)
+		_set_offsets(_turn_label, 0.0, 1.0, EDGE_MARGIN, -MENU_BUTTON_CLEARANCE, 56.0, PORTRAIT_BANNER_BOTTOM)
 	else:
 		_place_column(_allies_box, true)
 		_place_column(_enemies_box, false)
@@ -222,8 +259,15 @@ static func _set_offsets(control: Control, anchor_left: float, anchor_right: flo
 	control.offset_bottom = bottom
 
 ## Row cards hug the board (rows are docked to it), so an expanding active card grows away from it.
+## Portrait rows share the width: full cards when they fit, else narrower
+## compact ones (never below CharacterCard.COMPACT_WIDTH).
 func _fit_card(card: CharacterCard) -> void:
-	card.set_compact(_portrait)
+	var count := card.get_parent().get_child_count()
+	var share := (size.x - 16.0 - ROW_SEPARATION * (count - 1)) / count
+	var compact := _portrait and share < CharacterCard.WIDTH
+	card.set_compact(compact)
+	if compact:
+		card.custom_minimum_size.x = maxf(share, CharacterCard.COMPACT_WIDTH)
 	var on_top_row := _portrait and card.get_parent() == _enemies_box
 	card.size_flags_vertical = Control.SIZE_SHRINK_END if on_top_row else Control.SIZE_SHRINK_BEGIN
 
@@ -231,7 +275,7 @@ func _make_box() -> BoxContainer:
 	var box := BoxContainer.new()
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
-	box.add_theme_constant_override("separation", 10)
+	box.add_theme_constant_override("separation", ROW_SEPARATION)
 	add_child(box)
 	return box
 

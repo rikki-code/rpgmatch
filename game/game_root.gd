@@ -210,6 +210,10 @@ const CAMERA_HEIGHT := 15.0
 const CAMERA_TILT_DEGREES := 5.0
 const CAMERA_MARGIN := 2.0
 
+## Enlarges all 2D UI (text, buttons, cards, HUD) for touch; the board fit
+## works in the scaled canvas, so it adapts on its own.
+const UI_SCALE := 1.25
+
 ## Portrait screens (phones) get the project's base size turned portrait, so
 ## the UI isn't shrunk to fit a 1920-wide landscape canvas.
 func _fit_content_scale() -> void:
@@ -219,6 +223,7 @@ func _fit_content_scale() -> void:
 	var wanted := Vector2i(mini(base.x, base.y), maxi(base.x, base.y)) if portrait else base
 	if window.content_scale_size != wanted:
 		window.content_scale_size = wanted
+	window.content_scale_factor = UI_SCALE
 
 ## Deferred a frame so HUD containers have their final size after a mode switch.
 func _refit_camera() -> void:

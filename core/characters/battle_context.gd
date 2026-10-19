@@ -11,6 +11,8 @@ signal turn_started(character: Character)
 signal action_selected(character: Character, action: BattleAction)
 ## The active character's target for its pending action (set ahead so the view can show it).
 signal target_selected(character: Character)
+## Emitted right before the action applies (PhaseResolveCombatAction waits LAUNCH_SECONDS between).
+signal action_launched(actor: Character, target: Character, action: BattleAction)
 ## `character` = who received the shield (the actor or an ally).
 signal shield_gained(character: Character, amount: int)
 ## cell_b is null for a detonation (see MoveFinder.Move).

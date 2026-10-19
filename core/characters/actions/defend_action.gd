@@ -9,6 +9,9 @@ const DANGER_RATIO := 0.3
 func display_name() -> String:
 	return "Defend"
 
+func visual_kind() -> StringName:
+	return &"defend"
+
 func targets_own_side() -> bool:
 	return true
 

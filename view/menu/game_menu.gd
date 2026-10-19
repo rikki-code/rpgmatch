@@ -9,7 +9,12 @@ signal settings_applied(params: WorldGenParams)
 signal reset_requested
 signal quit_requested
 
-const PANEL_WIDTH := 320.0
+## Large on purpose: the menu must be easy to hit on a phone.
+const PANEL_WIDTH := 540.0
+const FONT_SIZE := 30
+const TITLE_FONT_SIZE := 44
+const ROW_HEIGHT := 68.0
+const OPEN_BUTTON_SIZE := 72.0
 
 var _open_button: Button
 var _dim: ColorRect
@@ -71,14 +76,16 @@ func _show_page(page: Control) -> void:
 
 func _build() -> void:
 	_open_button = Button.new()
-	_open_button.text = "☰"
-	_open_button.add_theme_font_size_override("font_size", 24)
+	# An icon, not a glyph: web builds have no system font fallback for symbols.
+	_open_button.icon = load(PackPaths.UI_PACK + "menu_icon.svg")
+	_open_button.expand_icon = true
+	_open_button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_open_button.anchor_left = 1.0
 	_open_button.anchor_right = 1.0
-	_open_button.offset_left = -60.0
-	_open_button.offset_right = -16.0
+	_open_button.offset_left = -OPEN_BUTTON_SIZE - 12.0
+	_open_button.offset_right = -12.0
 	_open_button.offset_top = 12.0
-	_open_button.offset_bottom = 52.0
+	_open_button.offset_bottom = 12.0 + OPEN_BUTTON_SIZE
 	_open_button.pressed.connect(func() -> void: _set_open(true))
 	add_child(_open_button)
 
@@ -91,6 +98,9 @@ func _build() -> void:
 	_dim.add_child(center)
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size.x = PANEL_WIDTH
+	var panel_theme := Theme.new()
+	panel_theme.default_font_size = FONT_SIZE
+	panel.theme = panel_theme
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.11, 0.12, 0.15, 1.0)
 	style.border_color = Color(0.35, 0.38, 0.45, 1.0)
@@ -100,12 +110,14 @@ func _build() -> void:
 	center.add_child(panel)
 	var pages := MarginContainer.new()
 	for side in ["left", "right", "top", "bottom"]:
-		pages.add_theme_constant_override("margin_" + side, 16)
+		pages.add_theme_constant_override("margin_" + side, 28)
 	panel.add_child(pages)
 
 	_main_page = _page(pages, "Menu")
 	_mode_option = OptionButton.new()
 	_mode_option.item_selected.connect(_on_mode_item_selected)
+	# The dropdown is its own popup window, outside the panel theme.
+	_mode_option.get_popup().add_theme_font_size_override("font_size", FONT_SIZE)
 	_main_page.add_child(_row("Mode", _mode_option))
 	_button(_main_page, "Resume", func() -> void: _set_open(false))
 	_button(_main_page, "Settings", func() -> void: _show_page(_settings_page))
@@ -137,12 +149,12 @@ func _on_mode_item_selected(index: int) -> void:
 
 func _page(parent: Control, title: String) -> VBoxContainer:
 	var page := VBoxContainer.new()
-	page.add_theme_constant_override("separation", 10)
+	page.add_theme_constant_override("separation", 16)
 	parent.add_child(page)
 	var label := Label.new()
 	label.text = title
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 26)
+	label.add_theme_font_size_override("font_size", TITLE_FONT_SIZE)
 	page.add_child(label)
 	return page
 
@@ -152,13 +164,14 @@ func _row(caption: String, control: Control) -> HBoxContainer:
 	label.text = caption
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(label)
-	control.custom_minimum_size.x = 140.0
+	control.custom_minimum_size = Vector2(220.0, ROW_HEIGHT)
 	row.add_child(control)
 	return row
 
 func _button(parent: Control, text: String, on_pressed: Callable) -> void:
 	var button := Button.new()
 	button.text = text
+	button.custom_minimum_size.y = ROW_HEIGHT
 	button.pressed.connect(on_pressed)
 	parent.add_child(button)
 

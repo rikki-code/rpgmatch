@@ -3,6 +3,8 @@
 class_name PhaseResolveCombatAction
 extends TurnPhase
 
+## Time the view gets to fly the action from actor to target before it lands.
+const LAUNCH_SECONDS := 0.45
 const SHOW_RESULT_SECONDS := 0.6
 
 func execute(ctx: TurnContext) -> void:
@@ -14,5 +16,7 @@ func execute(ctx: TurnContext) -> void:
 	var target := battle.pending_target
 	if target == null or not target.is_alive():
 		return
+	battle.action_launched.emit(actor, target, battle.pending_action)
+	await ctx.animation_driver.await_delay(LAUNCH_SECONDS)
 	battle.pending_action.apply(actor, target, power, ctx.score_tracker.combo_factor(), battle)
 	await ctx.animation_driver.await_delay(SHOW_RESULT_SECONDS)
