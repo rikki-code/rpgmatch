@@ -1,24 +1,10 @@
-## Tags a prism's blast for the view — BoardView3D fires a colored magic bolt
-## from `origin` at each cell in `cells` (see BoardView3D._play_prism_blast)
-## — then turns into an EffectBlastDamage per cell, same direct-hit delivery
-## as EffectBombBlast/EffectArrowBlast.
+## A prism's blast; the view fires a bolt at every cell, tinted with `color`
+## (a board color index, -1 = neutral for a whole-board combo).
 class_name EffectPrismBlast
-extends Effect
+extends EffectBlast
 
-var origin: GridCell
-var cells: Array[GridCell]
-## Board color index the bolts should be tinted. -1 = no single color (two
-## prisms combined into a whole-board blast, see PrismCore._do_combine_with) — view
-## falls back to a neutral tint.
 var color: int
 
-func _init(p_origin: GridCell, p_cells: Array[GridCell], p_color: int = -1) -> void:
-	origin = p_origin
-	cells = p_cells
+func _init(p_origin: GridCell, p_cells: Array[GridCell], p_color: int = -1, p_source: Tile = null) -> void:
+	super(p_origin, p_cells, p_source)
 	color = p_color
-
-func execute(_board: BoardGraph) -> Array[Effect]:
-	var effects: Array[Effect] = []
-	for cell in cells:
-		effects.append(EffectBlastDamage.new(cell, 1))
-	return effects

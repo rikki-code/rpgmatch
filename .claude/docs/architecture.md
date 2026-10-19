@@ -179,9 +179,8 @@ reliably kills:
 - A bomb can also randomly drop during gravity respawn (`WorldGenParams.bomb_spawn_chance` →
   `BoardGraph.bomb_spawn_chance`, used in `EffectSpawnTile`; doesn't affect initial board generation).
   `EffectSpawnBombTile`/`EffectSpawnArrowBlasterTile`/`EffectSpawnPrismTile`/`EffectSpawnTile` for a
-  bonus tile always set `fall_distance = 0` — it appears in place instead of falling from the top of
-  the board (otherwise `PhasePhysicsResolve`'s `await_settle()` waits on that long invisible fall,
-  stalling gravity for the rest of the board). `EffectPlaceTile` (shared with combining, above) is the
+  bonus tile always set `fall_distance = 0` — it appears in place (a pop-in) instead of falling from
+  the top of the board. `EffectPlaceTile` (shared with combining, above) is the
   same idea for an already-built `Tile` rather than one built on the spot via a factory.
 
 ## Effects — a single cascade mechanism
@@ -213,8 +212,30 @@ reliably kills:
 - `request_hold()` parks the loop at the end of the current cycle (animations finished) and emits
   `held`; `release()` resumes. Used by the editor and by mid-turn mode switches.
 - `PhasePhysicsResolve.settle(ctx)` — the match/gravity loop, reusable outside the cycle (editor exit).
-- Cross-frame waits (`BoardViewAnimationDriver.await_delay`, view effect beats) are view-owned tweens,
-  never `SceneTree` timers: they respect pause and die with the scene on reload.
+- Cross-frame waits (`BoardViewAnimationDriver.await_delay`, view tweens) are view-owned, never
+  `SceneTree` timers: they respect pause and die with the scene on reload.
+
+## View animation
+
+The model resolves a whole wave synchronously; the view plays it back afterwards.
+
+- `Effect.cause` (set by `EffectResolver`) links an effect to the one whose `execute()` returned it.
+  Effects carry what the view needs (`EffectAppearTile.tile`/`fall_distance`/`reveal_distance`,
+  `EffectGravityColumn.moves`, `EffectBlast.source`), so the view never diffs board state to guess events.
+- `BoardView3D` is a thin root: `cells` (`CellLayer`), `tiles` (`TileLayer` + `TileMotion`), `vfx` (`VfxPool`),
+  `BoardGeometry` for cell<->world math. `present_effect` (wired to `effect_applied`) queues effects that have a presenter.
+  `await_settled()` — what `AnimationDriver.await_settle` calls — plays the queue with `WavePlayer`:
+  effects grouped by depth along `cause`, one generation after another, each generation in parallel.
+- `EffectPresenter` per effect type, registered in `BoardView3D._register_presenters` (like `EntityView`
+  per entity type): `play(effect, stage)` starts the animation; it `await`s only what the effects it
+  causes must wait for (a bomb's fuse via `fuse_finished(source)`, a projectile's `arrived`). Waiting is
+  always on an animation finishing, never on a duration constant.
+- `ActivityTracker` follows every view tween so a wave ends when the last one ends; a replaced tween must
+  go through `cancel`. `refresh()` reconciles nodes with the board for changes that carry no effect
+  (opening fill, swap, shuffle, world editor) and after each wave as a safety net.
+- Falls are uniform acceleration (quad ease-in) per tile. Tile nodes are pooled by `TileView`
+  (`release_node`); `VfxPool` pools, caps and light-budgets explosions and bolts (GL Compatibility/web).
+- A new look for an effect = a new `EffectPresenter`; a new entity look = a new `EntityView`.
 
 ## Game modes and session
 

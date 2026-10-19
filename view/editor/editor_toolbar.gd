@@ -74,7 +74,7 @@ func setup(cell_catalog: Array[EditorCellCatalog.Entry], tile_catalog: Array[Edi
 	for i in range(_cell_entries.size()):
 		var entry: EditorCellCatalog.Entry = _cell_entries[i]
 		var kind: CellKind = entry.factory.call()
-		var scene: PackedScene = BoardView3D.CELL_SCENES_BY_VISUAL_KIND.get(kind.visual_kind(), BoardView3D.DEFAULT_CELL_SCENE)
+		var scene: PackedScene = CellLayer.SCENES_BY_VISUAL_KIND.get(kind.visual_kind(), CellLayer.DEFAULT_SCENE)
 		await _add_option_item(_cell_kind_option, entry.display_name, scene.instantiate(), i)
 
 	await _populate_tiles(_normal_option, _normal_entries)

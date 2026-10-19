@@ -2,13 +2,10 @@
 ## Tile.make_arrow_blaster. Reward for a length-4 straight match (see
 ## EffectResolveMatchGroup), mirrors EffectSpawnBombTile.
 class_name EffectSpawnArrowBlasterTile
-extends Effect
+extends EffectAppearTile
 
-var cell: GridCell
 var axis: ArrowBlasterCore.Axis
 var extra_lines: int
-var fall_distance: int = 0
-var reveal_distance: int = 0
 
 func _init(p_cell: GridCell, p_axis: ArrowBlasterCore.Axis, p_extra_lines: int = 0) -> void:
 	cell = p_cell
@@ -18,5 +15,6 @@ func _init(p_cell: GridCell, p_axis: ArrowBlasterCore.Axis, p_extra_lines: int =
 func execute(_board: BoardGraph) -> Array[Effect]:
 	if not cell.kind.can_hold_tile():
 		return []
-	cell.occupant = Tile.make_arrow_blaster(axis, extra_lines)
+	tile = Tile.make_arrow_blaster(axis, extra_lines)
+	cell.occupant = tile
 	return []

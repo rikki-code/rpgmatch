@@ -49,7 +49,7 @@ func execute(_board: BoardGraph) -> Array[Effect]:
 	# only touches a local queue variable, so nesting a call is safe, and it
 	# means this cascade still emits effect_applied per step (view
 	# animations/pacing) instead of vanishing into a throwaway resolver.
-	resolver.resolve(effects)
+	resolver.resolve(effects, self)
 
 	if cells.size() == ARROW_MATCH_SIZE:
 		return [EffectSpawnArrowBlasterTile.new(anchor, _blast_axis_for(cells))]

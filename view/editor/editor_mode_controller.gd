@@ -75,8 +75,8 @@ func _close() -> void:
 	active = false
 	mode_changed.emit(false)
 	ctx.board.link_grid_neighbors()
-	board_view.sync_cells()
-	board_view.refresh(null, true)
+	board_view.cells.sync(board_view.board)
+	board_view.refresh(true)
 	ctx.awaiting_player_input = false
 	await PhasePhysicsResolve.settle(ctx)
 	# Edit-made matches must not feed this turn's score/attack power.
@@ -111,16 +111,16 @@ func _unhandled_input(event: InputEvent) -> void:
 		_handle_click(event.position)
 
 func _handle_click(screen_pos: Vector2) -> void:
-	var pos := board_view.world_to_cell(BoardView3D.ground_plane_point(camera, screen_pos))
+	var pos := BoardGeometry.world_to_cell(BoardGeometry.ground_plane_point(camera, screen_pos))
 	match _tool_kind:
 		ToolKind.SET_CELL_KIND:
 			edit_controller.set_cell_kind(pos, _active_cell_entry.factory)
-			board_view.sync_cells()
-			board_view.refresh(null, true)
+			board_view.cells.sync(board_view.board)
+			board_view.refresh(true)
 		ToolKind.REMOVE_CELL:
 			edit_controller.remove_cell(pos)
-			board_view.sync_cells()
-			board_view.refresh(null, true)
+			board_view.cells.sync(board_view.board)
+			board_view.refresh(true)
 		ToolKind.PLACE_TILE:
 			if _active_tile_entry == null:
 				return
@@ -128,4 +128,4 @@ func _handle_click(screen_pos: Vector2) -> void:
 				edit_controller.place_tile(pos, _active_tile_entry.factory)
 			else:
 				edit_controller.clear_tile(pos)
-			board_view.refresh(null, true)
+			board_view.refresh(true)

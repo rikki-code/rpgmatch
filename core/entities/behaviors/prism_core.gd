@@ -29,7 +29,7 @@ func can_combine_with_core(_other: TriggerCore) -> bool:
 	return true
 
 func _do_trigger(self_tile: Tile, cell: GridCell, board: BoardGraph) -> Array[Effect]:
-	return [EffectPrismBlast.new(cell, blast_cells(self_tile, cell, board), _dominant_color(board))]
+	return [EffectPrismBlast.new(cell, blast_cells(self_tile, cell, board), _dominant_color(board), self_tile)]
 
 func blast_cells(_self_tile: Tile, _cell: GridCell, board: BoardGraph) -> Array[GridCell]:
 	return _cells_with_color(board, _dominant_color(board))

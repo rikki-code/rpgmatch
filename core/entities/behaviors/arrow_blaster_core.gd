@@ -41,7 +41,7 @@ func quest_kind_id(_self_tile: Tile) -> StringName:
 	return &"arrow_blaster"
 
 func _do_trigger(self_tile: Tile, cell: GridCell, board: BoardGraph) -> Array[Effect]:
-	return [EffectArrowBlast.new(cell, axis, blast_cells(self_tile, cell, board))]
+	return [EffectArrowBlast.new(cell, axis, blast_cells(self_tile, cell, board), self_tile)]
 
 func blast_cells(_self_tile: Tile, cell: GridCell, board: BoardGraph) -> Array[GridCell]:
 	match axis:

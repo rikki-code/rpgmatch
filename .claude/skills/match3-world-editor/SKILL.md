@@ -31,7 +31,7 @@ of the screen (`EditorToolbar`).
 - `view/editor/editor_mode_controller.gd` (`Node3D`) — R-toggle, current tool
   (`ToolKind.SET_CELL_KIND` / `REMOVE_CELL` / `PLACE_TILE`, mutually exclusive), converts clicks into
   `BoardEditController` calls. While open it sets `ctx.awaiting_player_input = true` (the edit gate)
-  and restores the previous value on exit. Exit: `link_grid_neighbors()` + `sync_cells()` +
+  and restores the previous value on exit. Exit: `link_grid_neighbors()` + `cells.sync()` +
   `refresh(null, true)`, then `PhasePhysicsResolve.settle(ctx)` with input locked, `reset_combo()`
   (edit matches never feed the turn), restore input state, emit `settled`, and `release()` the held
   manager if it is still current. Editing never ends or skips a turn.
@@ -69,7 +69,7 @@ table for the editor itself:
   would leave a dangling ref to an already-removed `GridCell` on its former neighbors.
   `BoardGraph.remove_cell(pos)` is a full cell removal (a hole in the graph, like a board edge — not
   `PitCellKind`, see `.claude/skills/match3-board-model/SKILL.md`), taking its occupant with it.
-- `BoardView3D.sync_cells()` — diffs `_cell_nodes`/`_cell_visual_kind` by position against the current
+- `CellLayer.sync()` — diffs `_nodes`/`_visual_kinds` by position against the current
   `board.all_cells()`: builds a node for a new cell, removes one for a vanished cell, **rebuilds a
   node in place** if an existing cell's `kind.visual_kind()` changed (the editor can repaint a cell to
   a different kind without deleting/recreating the `GridCell`) — normal gameplay
@@ -84,7 +84,7 @@ table for the editor itself:
 ## Pitfalls already hit
 
 - **Dropdown icons** render as real 3D scenes via an offscreen `SubViewport` (reuses
-  `TileView.build_node()`/`BoardView3D.CELL_SCENES_BY_VISUAL_KIND`, not a separate icon set) — but the
+  `TileView.build_node()`/`CellLayer.SCENES_BY_VISUAL_KIND`, not a separate icon set) — but the
   `SubViewport` must live **outside** the node that `set_panel_visible()` hides (a `Panel` in the
   toolbar, not the scene root): hiding an ancestor stops the `SubViewport` from rendering, and
   `get_texture().get_image()` then silently returns something no texture can be built from.

@@ -52,9 +52,13 @@ func _ready() -> void:
 	board_view = $BoardView3D
 	board_view.setup(board)
 	ctx.animation_driver = BoardViewAnimationDriver.new(board_view)
-	ctx.resolver.effect_applied.connect(func(effect: Effect) -> void: board_view.refresh(effect))
+	ctx.resolver.effect_applied.connect(board_view.present_effect)
 	swap_controller.swap_applied.connect(func(_a: GridCell, _b: GridCell) -> void: _after_board_move())
-	swap_controller.swap_rejected.connect(func(_a: GridCell, _b: GridCell) -> void: board_view.refresh())
+	swap_controller.swap_rejected.connect(func(a: GridCell, b: GridCell) -> void:
+		board_view.refresh()
+		board_view.tiles.wobble(a)
+		board_view.tiles.wobble(b)
+	)
 	swap_controller.tiles_combined.connect(func(_a: GridCell, _b: GridCell) -> void: _after_board_move())
 	detonate_controller.detonated.connect(func(_cell: GridCell) -> void: _after_board_move())
 	ctx.shuffle_controller.shuffled.connect(_after_board_move)
@@ -193,15 +197,15 @@ func _start_turn_manager() -> void:
 ## Highlights a move: what an AI is about to play, or the idle-player hint.
 func _highlight_move(cell_a: GridCell, cell_b: GridCell) -> void:
 	if cell_b == null:
-		board_view.set_match_preview([cell_a.occupant])
+		board_view.tiles.set_match_preview([cell_a.occupant])
 		return
 	var tiles: Array = swap_controller.preview_match(cell_a, cell_b)
 	if tiles.is_empty():
 		tiles = [cell_a.occupant, cell_b.occupant]
-	board_view.set_match_preview(tiles)
+	board_view.tiles.set_match_preview(tiles)
 
 func _after_board_move() -> void:
-	board_view.set_match_preview([])
+	board_view.tiles.set_match_preview([])
 	board_view.refresh()
 
 const QUEST_REWARD_PER_TILE := 5
@@ -231,7 +235,7 @@ func _refit_camera() -> void:
 	_place_camera()
 
 func _place_camera() -> void:
-	var cell_size := BoardView3D.CELL_SIZE
+	var cell_size := BoardGeometry.CELL_SIZE
 	var center := Vector3((board.width - 1) * 0.5 * cell_size, 0.0, (board.height - 1) * 0.5 * cell_size)
 	# Tilted `CAMERA_TILT_DEGREES` off straight-down: solve where a ray from
 	# the camera actually lands on the ground (y=0) and shift the camera by

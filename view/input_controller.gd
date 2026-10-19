@@ -56,7 +56,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _try_detonate(screen_pos: Vector2) -> void:
 	if not swap_controller.ctx.awaiting_player_input:
 		return
-	var cell := board.get_cell(board_view.world_to_cell(_ground_plane_point(screen_pos)))
+	var cell := board.get_cell(BoardGeometry.world_to_cell(_ground_plane_point(screen_pos)))
 	if cell == null:
 		return
 	detonate_controller.try_detonate(cell)
@@ -64,22 +64,22 @@ func _try_detonate(screen_pos: Vector2) -> void:
 func _begin_drag(screen_pos: Vector2) -> void:
 	if not swap_controller.ctx.awaiting_player_input:
 		return
-	var cell := board.get_cell(board_view.world_to_cell(_ground_plane_point(screen_pos)))
+	var cell := board.get_cell(BoardGeometry.world_to_cell(_ground_plane_point(screen_pos)))
 	if cell == null or not (cell.occupant is Tile):
 		return
 	_drag_cell = cell
 	_drag_tile = cell.occupant
-	_drag_origin_world = board_view.cell_to_world(cell.position)
+	_drag_origin_world = BoardGeometry.cell_to_world(cell.position)
 	_drag_direction = -1
 	_drag_fraction = 0.0
 	_companion_cell = null
 	_companion_tile = null
-	board_view.set_match_preview([])
-	board_view.hold(_drag_tile)
+	board_view.tiles.set_match_preview([])
+	board_view.tiles.hold(_drag_tile)
 	_kill_spring(_drag_tile)
-	var node := board_view.node_for_tile(_drag_tile)
+	var node := board_view.tiles.node_for_tile(_drag_tile)
 	if node != null:
-		node.position = board_view.lifted_world(cell.position) + Vector3.UP * DRAG_LIFT_BONUS
+		node.position = BoardGeometry.lifted_world(cell.position) + Vector3.UP * DRAG_LIFT_BONUS
 
 func _update_drag(screen_pos: Vector2) -> void:
 	var world_pos := _ground_plane_point(screen_pos)
@@ -94,9 +94,9 @@ func _update_drag(screen_pos: Vector2) -> void:
 	var neighbor := _drag_cell.neighbor(direction)
 	var offset := 0.0
 	if neighbor != null:
-		offset = clampf(dx if horizontal else dz, -BoardView3D.CELL_SIZE, BoardView3D.CELL_SIZE)
+		offset = clampf(dx if horizontal else dz, -BoardGeometry.CELL_SIZE, BoardGeometry.CELL_SIZE)
 		_drag_direction = direction
-		_drag_fraction = offset / BoardView3D.CELL_SIZE
+		_drag_fraction = offset / BoardGeometry.CELL_SIZE
 	else:
 		_drag_direction = -1
 		_drag_fraction = 0.0
@@ -104,13 +104,13 @@ func _update_drag(screen_pos: Vector2) -> void:
 	_update_companion(neighbor if _drag_direction != -1 else null)
 
 	# The held tile follows the cursor within a cross/plus shape
-	var half_cell := BoardView3D.CELL_SIZE * 0.5 - TileView.RADIUS
+	var half_cell := BoardGeometry.CELL_SIZE * 0.5 - TileView.RADIUS
 	var free_offset := (
-		Vector3(clampf(dx, -BoardView3D.CELL_SIZE, BoardView3D.CELL_SIZE), 0.0, clampf(dz, -half_cell, half_cell))
+		Vector3(clampf(dx, -BoardGeometry.CELL_SIZE, BoardGeometry.CELL_SIZE), 0.0, clampf(dz, -half_cell, half_cell))
 		if horizontal
-		else Vector3(clampf(dx, -half_cell, half_cell), 0.0, clampf(dz, -BoardView3D.CELL_SIZE, BoardView3D.CELL_SIZE))
+		else Vector3(clampf(dx, -half_cell, half_cell), 0.0, clampf(dz, -BoardGeometry.CELL_SIZE, BoardGeometry.CELL_SIZE))
 	)
-	var drag_target := board_view.lifted_world(_drag_cell.position) + Vector3.UP * DRAG_LIFT_BONUS + free_offset
+	var drag_target := BoardGeometry.lifted_world(_drag_cell.position) + Vector3.UP * DRAG_LIFT_BONUS + free_offset
 	_drive(_drag_tile, drag_target, DRAG_FOLLOW_TIME)
 
 	# A combine (see CombineEffectsBehavior) doesn't move either tile onto the
@@ -118,7 +118,7 @@ func _update_drag(screen_pos: Vector2) -> void:
 	# slide out of the way like it would for an ordinary match-swap preview.
 	if _companion_tile != null and not _is_combine_candidate():
 		var offset_vec := Vector3(offset, 0.0, 0.0) if horizontal else Vector3(0.0, 0.0, offset)
-		var companion_target := board_view.lifted_world(_companion_cell.position) - offset_vec
+		var companion_target := BoardGeometry.lifted_world(_companion_cell.position) - offset_vec
 		_drive(_companion_tile, companion_target, DRAG_FOLLOW_TIME)
 
 func _is_combine_candidate() -> bool:
@@ -139,20 +139,20 @@ func _update_companion(neighbor: GridCell) -> void:
 	_companion_tile = new_tile
 	_companion_cell = neighbor
 	if _companion_tile != null:
-		board_view.hold(_companion_tile)
+		board_view.tiles.hold(_companion_tile)
 	_update_preview()
 
 func _update_preview() -> void:
 	if _companion_cell == null:
-		board_view.set_match_preview([])
+		board_view.tiles.set_match_preview([])
 		return
 	if _is_combine_candidate():
-		board_view.set_match_preview([_drag_tile, _companion_tile])
+		board_view.tiles.set_match_preview([_drag_tile, _companion_tile])
 		return
-	board_view.set_match_preview(swap_controller.preview_match(_drag_cell, _companion_cell))
+	board_view.tiles.set_match_preview(swap_controller.preview_match(_drag_cell, _companion_cell))
 
 func _drive(tile: Tile, target: Vector3, duration: float) -> Tween:
-	var node := board_view.node_for_tile(tile)
+	var node := board_view.tiles.node_for_tile(tile)
 	if node == null:
 		return null
 	_kill_spring(tile)
@@ -165,20 +165,20 @@ func _drive(tile: Tile, target: Vector3, duration: float) -> Tween:
 ## wherever the drag last pushed it (a hard snap there reads as a glitch just
 ## as much as leaving it mid-air does).
 func _spring_back(tile: Tile, cell: GridCell) -> void:
-	var node := board_view.node_for_tile(tile)
+	var node := board_view.tiles.node_for_tile(tile)
 	if node == null:
-		board_view.release(tile)
+		board_view.tiles.release(tile)
 		return
-	var target := board_view.lifted_world(cell.position)
+	var target := BoardGeometry.lifted_world(cell.position)
 	var tween := _drive(tile, target, DRAG_FOLLOW_TIME)
 	if tween == null:
-		board_view.release(tile)
+		board_view.tiles.release(tile)
 		return
 	tween.finished.connect(func() -> void:
 		if _spring_tweens.get(tile) == tween:
 			_spring_tweens.erase(tile)
 			if tile != _companion_tile and tile != _drag_tile:
-				board_view.release(tile)
+				board_view.tiles.release(tile)
 	)
 
 func _kill_spring(tile: Tile) -> void:
@@ -201,8 +201,8 @@ func _end_drag() -> void:
 		if tween.is_valid():
 			tween.kill()
 	_spring_tweens.clear()
-	board_view.release_all()
-	board_view.set_match_preview([])
+	board_view.tiles.release_all()
+	board_view.tiles.set_match_preview([])
 	if swap_neighbor != null:
 		swap_controller.try_swap(drag_cell, swap_neighbor)
 
@@ -215,4 +215,4 @@ func _end_drag() -> void:
 	_companion_tile = null
 
 func _ground_plane_point(screen_pos: Vector2) -> Vector3:
-	return BoardView3D.ground_plane_point(camera, screen_pos)
+	return BoardGeometry.ground_plane_point(camera, screen_pos)

@@ -1,7 +1,8 @@
-## One-shot VFX (same pattern as TileExplosion): play(from, to), then self-frees.
-## Two-segment bolt with a jittered midpoint reads as electric, no shader needed.
+## Pooled one-shot VFX (same pattern as TileExplosion): play(from, to), then it
+## returns to the pool. Two-segment bolt with a jittered midpoint reads as
+## electric, no shader needed.
 class_name MatchLightning
-extends Node3D
+extends Vfx
 
 const DURATION := 0.22
 const JITTER := 0.14
@@ -10,11 +11,20 @@ const JITTER := 0.14
 @onready var segment_b: MeshInstance3D = $SegmentB
 @onready var light: OmniLight3D = $Light
 
+var _mat_a: StandardMaterial3D
+var _mat_b: StandardMaterial3D
+var _alpha: float
+var _energy: float
+
 func _ready() -> void:
-	# Duplicate so simultaneous bolts (a whole match group lighting up) each
-	# fade independently instead of fighting over one shared material.
-	segment_a.material_override = segment_a.material_override.duplicate()
-	segment_b.material_override = segment_b.material_override.duplicate()
+	# Own material per instance so simultaneous bolts fade independently.
+	_mat_a = segment_a.material_override.duplicate()
+	segment_a.material_override = _mat_a
+	_mat_b = segment_b.material_override.duplicate()
+	segment_b.material_override = _mat_b
+	_alpha = _mat_a.albedo_color.a
+	_energy = light.light_energy
+	light.visible = false
 
 func play(from: Vector3, to: Vector3) -> void:
 	var perpendicular := (to - from).cross(Vector3.UP)
@@ -27,18 +37,20 @@ func play(from: Vector3, to: Vector3) -> void:
 	_place_segment(segment_a, from, mid)
 	_place_segment(segment_b, mid, to)
 	light.position = mid
+	light.visible = light_on
+	_mat_a.albedo_color.a = _alpha
+	_mat_b.albedo_color.a = _alpha
+	light.light_energy = _energy
+	_run(DURATION, _update)
 
-	var mat_a: StandardMaterial3D = segment_a.material_override
-	var mat_b: StandardMaterial3D = segment_b.material_override
-	var start_alpha := mat_a.albedo_color.a
-	var start_energy := light.light_energy
-	var tween := create_tween()
-	tween.set_parallel(true)
-	tween.tween_method(func(a: float) -> void: mat_a.albedo_color.a = a, start_alpha, 0.0, DURATION)
-	tween.tween_method(func(a: float) -> void: mat_b.albedo_color.a = a, start_alpha, 0.0, DURATION)
-	tween.tween_method(func(e: float) -> void: light.light_energy = e, start_energy, 0.0, DURATION)
-	tween.set_parallel(false)
-	tween.tween_callback(queue_free)
+func _update(progress: float) -> void:
+	var alpha := _alpha * (1.0 - progress)
+	_mat_a.albedo_color.a = alpha
+	_mat_b.albedo_color.a = alpha
+	light.light_energy = _energy * (1.0 - progress)
+
+func _reset() -> void:
+	light.visible = false
 
 ## Rotates the unit-height cylinder's up axis onto a-to-b, then scales height to length.
 func _place_segment(mesh: MeshInstance3D, a: Vector3, b: Vector3) -> void:
@@ -48,5 +60,6 @@ func _place_segment(mesh: MeshInstance3D, a: Vector3, b: Vector3) -> void:
 	if length < 0.001:
 		mesh.visible = false
 		return
+	mesh.visible = true
 	mesh.quaternion = Quaternion(Vector3.UP, diff / length)
 	mesh.scale = Vector3(1.0, length, 1.0)

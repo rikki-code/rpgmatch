@@ -11,6 +11,7 @@ class_name EffectGravityColumn
 extends Effect
 
 var x: int
+var moves: Array[TileMove] = []
 
 func _init(p_x: int) -> void:
 	x = p_x
@@ -18,9 +19,10 @@ func _init(p_x: int) -> void:
 func execute(board: BoardGraph) -> Array[Effect]:
 	var column := board.column_cells_top_to_bottom(x)
 
+	moves.clear()
 	var effects: Array[Effect] = []
 	for segment in _segments(column):
-		effects.append_array(_resolve_segment(segment))
+		effects.append_array(_resolve_segment(segment, moves))
 	return effects
 
 ## Splits the column into contiguous holdable runs, breaking at pits and
@@ -40,7 +42,7 @@ static func _segments(column: Array[GridCell]) -> Array:
 
 ## Standard "compact non-null down, spawn for leftover gaps at the top"
 ## pass, scoped to a single segment instead of the whole column.
-static func _resolve_segment(segment: Array[GridCell]) -> Array[Effect]:
+static func _resolve_segment(segment: Array[GridCell], out_moves: Array[TileMove]) -> Array[Effect]:
 	var write_index := segment.size() - 1
 	for read_index in range(segment.size() - 1, -1, -1):
 		var cell: GridCell = segment[read_index]
@@ -53,6 +55,7 @@ static func _resolve_segment(segment: Array[GridCell]) -> Array[Effect]:
 			write_index = read_index - 1
 			continue
 		if write_index != read_index:
+			out_moves.append(TileMove.new(cell.occupant, cell, segment[write_index]))
 			segment[write_index].occupant = cell.occupant
 			cell.occupant = null
 		write_index -= 1

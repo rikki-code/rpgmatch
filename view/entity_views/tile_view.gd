@@ -35,16 +35,47 @@ const RADIUS := GeometryConstants.DEFAULT_TILE_RADIUS
 ## Must match tile_material.tres's emission_energy_multiplier.
 const BASE_EMISSION_ENERGY := 0.9
 const HIGHLIGHT_EMISSION_ENERGY := 3.2
-## Same pace for short settles and long spawn-falls, or the cascade looks disjointed.
-const CELLS_PER_SECOND := 7.0
 const DESTROY_TIME := 0.52
 ## Fuse-catch beat before a bomb's node shrinks away.
 const IGNITE_TIME := 0.15
 ## Windup beat before a prism's node hides and its blast fires.
 const SPIN_TIME := 0.45
 
+const POOL_PER_KEY := 12
+
+# Released nodes by look (kind + color); a reused node keeps its own material.
+var _free: Dictionary = {}  # String -> Array[Node3D]
+
 func build_node(entity: BoardEntity) -> Node3D:
 	var tile: Tile = entity
+	var key := "%s/%d/%s" % [tile.visual_kind(), tile.color, tile.visual_color]
+	var shelf: Array = _free.get(key, [])
+	if not shelf.is_empty():
+		return shelf.pop_back()
+	var node := _create_node(tile)
+	node.set_meta(&"pool_key", key)
+	node.set_meta(&"rest_basis", node.basis)
+	return node
+
+func release_node(node: Node3D) -> void:
+	var key: String = node.get_meta(&"pool_key", "")
+	if not _free.has(key):
+		_free[key] = []
+	var shelf: Array = _free[key]
+	if key == "" or shelf.size() >= POOL_PER_KEY:
+		node.queue_free()
+		return
+	set_highlighted(node, false)
+	node.visible = false
+	node.scale = Vector3.ONE
+	node.basis = node.get_meta(&"rest_basis")
+	if node.get_meta(&"visual_kind", &"") == &"bomb":
+		node.get_node("Spark").visible = false
+		node.get_node("Spark").scale = Vector3.ONE
+		node.get_node("SparkLight").visible = false
+	shelf.append(node)
+
+func _create_node(tile: Tile) -> Node3D:
 	var visual_kind := tile.visual_kind()
 	var scene: PackedScene = SCENES_BY_VISUAL_KIND.get(visual_kind)
 	if scene == null:
@@ -66,6 +97,9 @@ func build_node(entity: BoardEntity) -> Node3D:
 
 	if visual_kind == &"prism":
 		_paint_prism_balls(node)
+	elif visual_kind == &"bomb":
+		# An idle light still costs every tile it overlaps; the fuse turns it on.
+		node.get_node("SparkLight").visible = false
 
 	var color: Variant = tile.visual_color
 	if color == null and tile.color >= 0:
@@ -98,34 +132,6 @@ func _paint_prism_balls(node: Node3D) -> void:
 			material.emission = TILE_COLORS[i]
 		ball.set_surface_override_material(0, material)
 
-func play_spawn(node: Node3D, start: Vector3, reveal: Vector3, target: Vector3, owner_node: Node) -> Tween:
-	node.position = start
-	node.scale = Vector3.ONE
-	node.visible = false
-	var tween := owner_node.create_tween()
-	var hidden_distance := start.distance_to(reveal) / CELL_SIZE
-	if hidden_distance > 0.001:
-		# No easing/min-duration floor here: it's invisible, only the total
-		# elapsed time (this + the visible leg) matters for staying in sync
-		# with the rest of the batch.
-		tween.tween_property(node, "position", reveal, hidden_distance / CELLS_PER_SECOND)
-		tween.tween_callback(func() -> void: node.visible = true)
-	else:
-		node.position = reveal
-		node.visible = true
-	tween.tween_property(node, "position", target, _fall_duration(reveal, target)).set_trans(Tween.TRANS_LINEAR)
-	return tween
-
-func play_move(node: Node3D, target: Vector3, owner_node: Node) -> Tween:
-	node.scale = Vector3.ONE
-
-	node.visible = true
-	var duration := _fall_duration(node.position, target)
-	var tween := owner_node.create_tween()
-
-	tween.tween_property(node, "position", target, duration).set_trans(Tween.TRANS_LINEAR)
-	return tween
-
 func play_destroy(node: Node3D, owner_node: Node, on_complete: Callable) -> Tween:
 	var tween := owner_node.create_tween()
 	match node.get_meta(&"visual_kind", &"") as StringName:
@@ -137,6 +143,8 @@ func play_destroy(node: Node3D, owner_node: Node, on_complete: Callable) -> Twee
 			# Spins up in place, then vanishes instantly — no shrink, its blast is about to fire.
 			_spin_up(node, tween)
 			tween.tween_callback(func() -> void: node.visible = false)
+		&"arrow_blaster_row", &"arrow_blaster_column", &"arrow_blaster_both":
+			tween.tween_property(node, "scale", Vector3.ZERO, IGNITE_TIME)
 		_:
 			tween.tween_property(node, "scale", Vector3.ZERO, DESTROY_TIME)
 	tween.tween_callback(on_complete)
@@ -150,6 +158,7 @@ func _ignite_fuse(node: Node3D, tween: Tween) -> void:
 	var spark: MeshInstance3D = node.get_node("Spark")
 	var light: OmniLight3D = node.get_node("SparkLight")
 	spark.visible = true
+	light.visible = true
 	tween.set_parallel(true)
 	tween.tween_property(spark, "scale", Vector3.ONE * 1.6, IGNITE_TIME)
 	tween.tween_property(light, "light_energy", 3.0, IGNITE_TIME)
@@ -185,7 +194,3 @@ func set_highlighted(node: Node3D, on: bool) -> void:
 	tween.tween_property(material, "emission_energy_multiplier", BASE_EMISSION_ENERGY, 0.35).set_trans(Tween.TRANS_SINE)
 	tween.parallel().tween_property(mesh, "scale", base_scale, 0.35).set_trans(Tween.TRANS_SINE)
 	node.set_meta(&"highlight_tween", tween)
-
-func _fall_duration(from: Vector3, to: Vector3) -> float:
-	var distance_cells := from.distance_to(to) / CELL_SIZE
-	return distance_cells / CELLS_PER_SECOND

@@ -9,7 +9,7 @@ description: >
 ## Structure
 
 `view/packs/<category>_pack/<pack_name>/` — only `.tscn`/`.tres` (visuals), no `.gd` logic (except
-self-contained VFX scripts like `match_lightning.gd`/`tile_explosion.gd` that ship with their own
+self-contained pooled VFX scripts (`Vfx`, see `view/vfx/`) like `match_lightning.gd`/`tile_explosion.gd` that ship with their own
 scene).
 
 - `tiles_pack/` — normal colored tiles. Currently one pack: `crystal_pack/`
@@ -53,7 +53,7 @@ implemented; see `TileView.build_node()` — the scene is picked once, at spawn 
 
 `view/editor/` (in-game world editor, see `.claude/skills/match3-world-editor/SKILL.md`) is not a pack
 and isn't swappable, but its toolbar renders dropdown previews by instancing the same pack scenes via
-`TileView.build_node()`/`BoardView3D.CELL_SCENES_BY_VISUAL_KIND` inside an offscreen `SubViewport`,
+`TileView.build_node()`/`CellLayer.SCENES_BY_VISUAL_KIND` inside an offscreen `SubViewport`,
 rather than a separate icon set.
 
 ## Why load(), not preload()

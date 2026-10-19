@@ -25,7 +25,7 @@ func quest_kind_id(_self_tile: Tile) -> StringName:
 	return &"bomb"
 
 func _do_trigger(self_tile: Tile, cell: GridCell, board: BoardGraph) -> Array[Effect]:
-	return [EffectBombBlast.new(cell, blast_cells(self_tile, cell, board))]
+	return [EffectBombBlast.new(cell, blast_cells(self_tile, cell, board), self_tile)]
 
 func blast_cells(_self_tile: Tile, cell: GridCell, board: BoardGraph) -> Array[GridCell]:
 	if shape == Shape.MANHATTAN:

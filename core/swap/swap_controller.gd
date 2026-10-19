@@ -44,7 +44,9 @@ func perform_swap(cell_a: GridCell, cell_b: GridCell) -> bool:
 		cell_a.occupant = null
 		cell_b.occupant = null
 		ctx.score_tracker.begin_wave()
-		ctx.resolver.resolve(tile_a.combine_with(tile_b, cell_b, ctx.board))
+		var effects: Array[Effect] = [EffectConsumeTile.new(tile_a, cell_a), EffectConsumeTile.new(tile_b, cell_b)]
+		effects.append_array(tile_a.combine_with(tile_b, cell_b, ctx.board))
+		ctx.resolver.resolve(effects)
 		tiles_combined.emit(cell_a, cell_b)
 		await ctx.animation_driver.await_settle()
 		ctx.turn_manager.notify_phase_done()
