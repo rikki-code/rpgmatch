@@ -1,15 +1,22 @@
-[gd_scene format=3 uid="uid://cpkkl7jo6lv8u"]
+[gd_scene format=3]
 
-[ext_resource type="Material" uid="uid://djnbgp3e1fym8" path="res://view/packs/board_pack/earth_pack/cell_pit_void_material.tres" id="2"]
+[ext_resource type="Material" path="res://view/packs/board_pack/earth_pack/pit_rim_material.tres" id="1"]
+[ext_resource type="Material" path="res://view/packs/board_pack/earth_pack/cell_pit_void_material.tres" id="2"]
 
-[sub_resource type="BoxMesh" id="BoxMesh_void"]
-size = Vector3(0.94, 0.5, 0.94)
+[sub_resource type="BoxMesh" id="Rim"]
+size = Vector3(0.95, 0.1, 0.95)
 
-[node name="CellPit" type="Node3D" unique_id=720653152]
-visible = false
+[sub_resource type="BoxMesh" id="Void"]
+size = Vector3(0.74, 0.04, 0.74)
 
-[node name="Void" type="MeshInstance3D" parent="." unique_id=1692015049]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
-visible = false
-mesh = SubResource("BoxMesh_void")
+[node name="CellPit" type="Node3D"]
+
+[node name="Rim" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.14, 0)
+mesh = SubResource("Rim")
+surface_material_override/0 = ExtResource("1")
+
+[node name="Void" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.07, 0)
+mesh = SubResource("Void")
 surface_material_override/0 = ExtResource("2")

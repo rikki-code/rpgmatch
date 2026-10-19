@@ -18,6 +18,9 @@ static var ARROW_BOLT_SCENE: PackedScene
 static var PRISM_BOLT_SCENE: PackedScene
 
 static func _static_init() -> void:
+	load_packs()
+
+static func load_packs() -> void:
 	EXPLOSION_SCENE = load(PackPaths.SPECIAL_TILES_PACK + "tile_explosion.tscn")
 	LIGHTNING_SCENE = load(PackPaths.TILES_PACK + "match_lightning.tscn")
 	ARROW_BOLT_SCENE = load(PackPaths.SPECIAL_TILES_PACK + "arrow_blast_bolt.tscn")

@@ -32,6 +32,7 @@ enabled=PackedStringArray("res://addons/godot_ai/plugin.cfg")
 
 [gui]
 
+theme/custom="res://view/packs/ui_pack/standard_pack/rpg_theme.tres"
 theme/custom_font="res://view/packs/ui_pack/standard_pack/ui_font.woff2"
 
 [rendering]

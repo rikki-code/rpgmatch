@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="TileColorPalette" format=3]
+
+[ext_resource type="Script" path="res://view/tile_color_palette.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+colors = Array[Color]([Color(1, 0.36, 0.72, 1), Color(0.22, 0.86, 0.95, 1), Color(1, 0.3, 0.32, 1), Color(1, 0.85, 0.18, 1), Color(1, 0.5, 0.16, 1), Color(0.66, 0.42, 1, 1)])

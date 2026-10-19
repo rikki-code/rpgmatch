@@ -5,7 +5,8 @@ extends Control
 
 signal mode_selected(index: int)
 signal editor_selected
-signal settings_applied(params: WorldGenParams)
+## `packs` maps a PackCatalog category to the chosen option id.
+signal settings_applied(params: WorldGenParams, packs: Dictionary)
 signal reset_requested
 signal quit_requested
 
@@ -25,6 +26,7 @@ var _width_spin: SpinBox
 var _height_spin: SpinBox
 var _colors_spin: SpinBox
 var _pits_spin: SpinBox
+var _pack_options: Dictionary = {}  # category -> OptionButton
 var _editor_item := -1
 
 func _ready() -> void:
@@ -102,8 +104,8 @@ func _build() -> void:
 	panel_theme.default_font_size = FONT_SIZE
 	panel.theme = panel_theme
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.11, 0.12, 0.15, 1.0)
-	style.border_color = Color(0.35, 0.38, 0.45, 1.0)
+	style.bg_color = Color(0.075, 0.065, 0.11, 1.0)
+	style.border_color = Color(0.55, 0.42, 0.2, 1.0)
 	style.set_border_width_all(2)
 	style.set_corner_radius_all(8)
 	panel.add_theme_stylebox_override("panel", style)
@@ -129,6 +131,8 @@ func _build() -> void:
 	_height_spin = _spin(_settings_page, "Height", 4, 12)
 	_colors_spin = _spin(_settings_page, "Tile colors", 3, BoardGraph.MAX_COLORS)
 	_pits_spin = _spin(_settings_page, "Holes", 0, 40)
+	_pack_option(PackCatalog.TILES, "Tiles")
+	_pack_option(PackCatalog.BOARD, "Board")
 	_button(_settings_page, "Apply (new board)", _apply_settings)
 	_button(_settings_page, "Back", func() -> void: _show_page(_main_page))
 
@@ -138,7 +142,11 @@ func _apply_settings() -> void:
 	params.height = int(_height_spin.value)
 	params.color_count = int(_colors_spin.value)
 	params.pit_count = int(_pits_spin.value)
-	settings_applied.emit(params)
+	var packs := {}
+	for category: StringName in _pack_options:
+		var option: OptionButton = _pack_options[category]
+		packs[category] = PackCatalog.options(category)[option.selected]["id"]
+	settings_applied.emit(params, packs)
 
 func _on_mode_item_selected(index: int) -> void:
 	_set_open(false)
@@ -174,6 +182,17 @@ func _button(parent: Control, text: String, on_pressed: Callable) -> void:
 	button.custom_minimum_size.y = ROW_HEIGHT
 	button.pressed.connect(on_pressed)
 	parent.add_child(button)
+
+func _pack_option(category: StringName, caption: String) -> void:
+	var option := OptionButton.new()
+	var choices := PackCatalog.options(category)
+	for i in range(choices.size()):
+		option.add_item(choices[i]["name"])
+		if choices[i]["id"] == PackCatalog.selected_id(category):
+			option.select(i)
+	option.get_popup().add_theme_font_size_override("font_size", FONT_SIZE)
+	_pack_options[category] = option
+	_settings_page.add_child(_row(caption, option))
 
 func _spin(parent: Control, caption: String, min_value: int, max_value: int) -> SpinBox:
 	var spin := SpinBox.new()

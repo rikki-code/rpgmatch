@@ -1,0 +1,164 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://view/packs/board_pack/dungeon_pack/board_frame.gd" id="1"]
+[ext_resource type="Material" path="res://view/packs/board_pack/dungeon_pack/frame_stone_material.tres" id="2"]
+[ext_resource type="Material" path="res://view/packs/board_pack/dungeon_pack/frame_gold_material.tres" id="3"]
+[ext_resource type="Material" path="res://view/packs/board_pack/dungeon_pack/brazier_metal_material.tres" id="4"]
+[ext_resource type="Material" path="res://view/packs/board_pack/dungeon_pack/flame_outer_material.tres" id="5"]
+[ext_resource type="Material" path="res://view/packs/board_pack/dungeon_pack/flame_inner_material.tres" id="6"]
+
+[sub_resource type="BoxMesh" id="Unit"]
+
+[sub_resource type="BoxMesh" id="Post"]
+size = Vector3(0.62, 0.9, 0.62)
+
+[sub_resource type="CylinderMesh" id="Bowl"]
+top_radius = 0.3
+bottom_radius = 0.18
+height = 0.16
+radial_segments = 10
+
+[sub_resource type="SphereMesh" id="FlameOuter"]
+radius = 0.17
+height = 0.5
+
+[sub_resource type="SphereMesh" id="FlameInner"]
+radius = 0.09
+height = 0.3
+
+[node name="BoardFrame" type="Node3D"]
+script = ExtResource("1")
+
+[node name="Beams" type="Node3D" parent="."]
+
+[node name="Top" type="MeshInstance3D" parent="Beams"]
+mesh = SubResource("Unit")
+surface_material_override/0 = ExtResource("2")
+
+[node name="Bottom" type="MeshInstance3D" parent="Beams"]
+mesh = SubResource("Unit")
+surface_material_override/0 = ExtResource("2")
+
+[node name="Left" type="MeshInstance3D" parent="Beams"]
+mesh = SubResource("Unit")
+surface_material_override/0 = ExtResource("2")
+
+[node name="Right" type="MeshInstance3D" parent="Beams"]
+mesh = SubResource("Unit")
+surface_material_override/0 = ExtResource("2")
+
+[node name="Trims" type="Node3D" parent="."]
+
+[node name="Top" type="MeshInstance3D" parent="Trims"]
+mesh = SubResource("Unit")
+surface_material_override/0 = ExtResource("3")
+
+[node name="Bottom" type="MeshInstance3D" parent="Trims"]
+mesh = SubResource("Unit")
+surface_material_override/0 = ExtResource("3")
+
+[node name="Left" type="MeshInstance3D" parent="Trims"]
+mesh = SubResource("Unit")
+surface_material_override/0 = ExtResource("3")
+
+[node name="Right" type="MeshInstance3D" parent="Trims"]
+mesh = SubResource("Unit")
+surface_material_override/0 = ExtResource("3")
+
+[node name="Braziers" type="Node3D" parent="."]
+
+[node name="TopLeft" type="Node3D" parent="Braziers"]
+
+[node name="Post" type="MeshInstance3D" parent="Braziers/TopLeft"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+mesh = SubResource("Post")
+surface_material_override/0 = ExtResource("2")
+
+[node name="Bowl" type="MeshInstance3D" parent="Braziers/TopLeft"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.58, 0)
+mesh = SubResource("Bowl")
+surface_material_override/0 = ExtResource("4")
+
+[node name="Flame" type="Node3D" parent="Braziers/TopLeft"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
+
+[node name="Outer" type="MeshInstance3D" parent="Braziers/TopLeft/Flame"]
+mesh = SubResource("FlameOuter")
+surface_material_override/0 = ExtResource("5")
+
+[node name="Inner" type="MeshInstance3D" parent="Braziers/TopLeft/Flame"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.04, 0)
+mesh = SubResource("FlameInner")
+surface_material_override/0 = ExtResource("6")
+
+[node name="TopRight" type="Node3D" parent="Braziers"]
+
+[node name="Post" type="MeshInstance3D" parent="Braziers/TopRight"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+mesh = SubResource("Post")
+surface_material_override/0 = ExtResource("2")
+
+[node name="Bowl" type="MeshInstance3D" parent="Braziers/TopRight"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.58, 0)
+mesh = SubResource("Bowl")
+surface_material_override/0 = ExtResource("4")
+
+[node name="Flame" type="Node3D" parent="Braziers/TopRight"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
+
+[node name="Outer" type="MeshInstance3D" parent="Braziers/TopRight/Flame"]
+mesh = SubResource("FlameOuter")
+surface_material_override/0 = ExtResource("5")
+
+[node name="Inner" type="MeshInstance3D" parent="Braziers/TopRight/Flame"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.04, 0)
+mesh = SubResource("FlameInner")
+surface_material_override/0 = ExtResource("6")
+
+[node name="BottomLeft" type="Node3D" parent="Braziers"]
+
+[node name="Post" type="MeshInstance3D" parent="Braziers/BottomLeft"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+mesh = SubResource("Post")
+surface_material_override/0 = ExtResource("2")
+
+[node name="Bowl" type="MeshInstance3D" parent="Braziers/BottomLeft"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.58, 0)
+mesh = SubResource("Bowl")
+surface_material_override/0 = ExtResource("4")
+
+[node name="Flame" type="Node3D" parent="Braziers/BottomLeft"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
+
+[node name="Outer" type="MeshInstance3D" parent="Braziers/BottomLeft/Flame"]
+mesh = SubResource("FlameOuter")
+surface_material_override/0 = ExtResource("5")
+
+[node name="Inner" type="MeshInstance3D" parent="Braziers/BottomLeft/Flame"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.04, 0)
+mesh = SubResource("FlameInner")
+surface_material_override/0 = ExtResource("6")
+
+[node name="BottomRight" type="Node3D" parent="Braziers"]
+
+[node name="Post" type="MeshInstance3D" parent="Braziers/BottomRight"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+mesh = SubResource("Post")
+surface_material_override/0 = ExtResource("2")
+
+[node name="Bowl" type="MeshInstance3D" parent="Braziers/BottomRight"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.58, 0)
+mesh = SubResource("Bowl")
+surface_material_override/0 = ExtResource("4")
+
+[node name="Flame" type="Node3D" parent="Braziers/BottomRight"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
+
+[node name="Outer" type="MeshInstance3D" parent="Braziers/BottomRight/Flame"]
+mesh = SubResource("FlameOuter")
+surface_material_override/0 = ExtResource("5")
+
+[node name="Inner" type="MeshInstance3D" parent="Braziers/BottomRight/Flame"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.04, 0)
+mesh = SubResource("FlameInner")
+surface_material_override/0 = ExtResource("6")

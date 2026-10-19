@@ -1,6 +1,9 @@
 [gd_resource type="StandardMaterial3D" format=3]
 
+[ext_resource type="Texture2D" path="res://view/packs/board_pack/earth_pack/grass_noise.tres" id="1"]
+
 [resource]
-albedo_color = Color(0.27, 0.38, 0.17, 1)
-roughness = 0.95
+albedo_color = Color(0.16, 0.27, 0.09, 1)
+albedo_texture = ExtResource("1")
+roughness = 0.9
 metallic = 0.0

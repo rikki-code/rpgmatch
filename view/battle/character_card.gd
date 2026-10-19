@@ -7,7 +7,7 @@ extends PanelContainer
 signal clicked(character: Character)
 signal action_picked(action: BattleAction)
 
-const BORDER_IDLE := Color(0.3, 0.3, 0.36)
+const BORDER_IDLE := Color(0.45, 0.36, 0.2)
 const BORDER_ACTIVE := Color(1.0, 0.85, 0.2)
 const BORDER_TARGET := Color(1.0, 0.35, 0.3)
 const ALLY_HP_COLOR := Color(0.35, 0.8, 0.4)
@@ -54,7 +54,7 @@ func setup(p_character: Character, actions: Array[BattleAction]) -> void:
 	custom_minimum_size = Vector2(WIDTH, 0)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_style = StyleBoxFlat.new()
-	_style.bg_color = Color(0.09, 0.09, 0.12, 0.92)
+	_style.bg_color = Color(0.075, 0.065, 0.11, 0.94)
 	_style.set_border_width_all(3)
 	_style.set_corner_radius_all(10)
 	_style.set_content_margin_all(12)

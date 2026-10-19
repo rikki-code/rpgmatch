@@ -1,0 +1,40 @@
+[gd_scene format=3]
+
+[ext_resource type="Material" path="res://view/packs/tiles_pack/six_seven_pack/tile_material.tres" id="1"]
+[ext_resource type="Material" path="res://view/packs/tiles_pack/six_seven_pack/sticker_border_material.tres" id="2"]
+[ext_resource type="FontFile" path="res://view/packs/tiles_pack/six_seven_pack/fonts/Bangers-Regular.ttf" id="bangers"]
+
+[sub_resource type="CylinderMesh" id="Body"]
+top_radius = 0.3
+bottom_radius = 0.3
+height = 0.1
+radial_segments = 32
+
+[sub_resource type="CylinderMesh" id="Rim"]
+top_radius = 0.345
+bottom_radius = 0.345
+height = 0.07
+radial_segments = 32
+
+[node name="TileSticker0" type="Node3D"]
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("Body")
+surface_material_override/0 = ExtResource("1")
+
+[node name="Rim" type="MeshInstance3D" parent="Mesh"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.01, 0)
+mesh = SubResource("Rim")
+surface_material_override/0 = ExtResource("2")
+
+[node name="Label0" type="Label3D" parent="Mesh"]
+transform = Transform3D(0.98481, 0.17365, 0.00000, 0.00000, 0.00000, 1.00000, 0.17365, -0.98481, 0.00000, 0.0, 0.056, 0.0)
+pixel_size = 0.004
+shaded = false
+double_sided = false
+modulate = Color(0.1, 0.05, 0.18, 1)
+outline_modulate = Color(1, 1, 1, 1)
+text = "67"
+font = ExtResource("bangers")
+font_size = 190
+outline_size = 18

@@ -9,14 +9,21 @@ description: >
 ## Structure
 
 `view/packs/<category>_pack/<pack_name>/` — only `.tscn`/`.tres` (visuals), no `.gd` logic (except
-self-contained pooled VFX scripts (`Vfx`, see `view/vfx/`) like `match_lightning.gd`/`tile_explosion.gd` that ship with their own
+self-contained pooled VFX scripts (`Vfx`, see `view/vfx/`) like `tile_explosion.gd` that ship with their own
 scene).
 
-- `tiles_pack/` — normal colored tiles. Currently one pack: `crystal_pack/`
-  (`tile_0.tscn`…`tile_5.tscn`, `tile_material.tres`, `tile_colors.tres`, `match_lightning.*` — the
-  match effect for these tiles).
-- `board_pack/` — board cells. Currently: `earth_pack/` (`cell_ground.tscn`, `cell_pit.tscn` + their
-  materials).
+- `tiles_pack/` — normal colored tiles. Packs: `crystal_pack/` and `six_seven_pack/` (flat stickers
+  with the digits 6 and 7 only, one bundled OFL font per sticker in `fonts/` (licenses alongside),
+  `Label3D` on a disc/box tinted from the palette; some stickers stagger 6 and 7 like the meme's
+  see-saw gesture). A pack holds
+  `tile_0.tscn`…`tile_5.tscn` (root child `Mesh`: the tinted body, `TileView` recolors it),
+  `tile_material.tres`, `tile_colors.tres`, and `match_lightning.tscn` + its material (the script
+  `MatchLightning` lives in `view/vfx/`).
+- `board_pack/` — what the board stands on. Packs: `dungeon_pack/` (stone slabs, gold-trimmed stone
+  frame, corner braziers) and `earth_pack/` (grass slabs, log fence, lanterns, `meadow_floor.gdshader` floor). A pack holds
+  `cell_ground.tscn`, `cell_ground_alt.tscn` (the second checkerboard shade), `cell_pit.tscn`,
+  `board_floor.tscn`, and `board_frame.tscn` whose root script extends `BoardDecor` and sizes the
+  frame in `fit(width, height)`. `CellLayer` instances them.
 - `special_tiles_pack/` — bombs, arrow blasters, and future bonus/penalty tiles. Currently:
   `standard_pack/` (`tile_bomb.tscn` + materials, `tile_arrow_blaster.tscn` + materials — one asset
   for both axes, `TileView` rotates the node 90° for `Axis.COLUMN`; `tile_explosion.*` — explosion
@@ -38,18 +45,16 @@ of the same category.
 
 ## Switching the active pack
 
-`view/pack_paths.gd` (`PackPaths`) is the single place holding base paths:
+`PackCatalog` (`view/pack_catalog.gd`) lists the selectable packs per category (tiles, board) and
+saves the choice in `user://packs.cfg`. The menu's Settings page has a dropdown per category; Apply
+calls `GameRoot._apply_packs` (save, `PackPaths.refresh()`, `TileView/CellLayer/VfxPool.load_packs()`)
+and reloads the scene. A new pack = a folder with the same file layout + one entry in
+`PackCatalog.OPTIONS`. `PackPaths` holds the active base path of every category (the fixed ones are
+consts). `PackCatalog` must not reference the consumers: `PackPaths` reads it during static init and
+a back-reference makes a static-init cycle.
 
-```gdscript
-const TILES_PACK := "res://view/packs/tiles_pack/crystal_pack/"
-```
-
-Switching packs = changing this one line (e.g. to `"res://view/packs/tiles_pack/cupcake_pack/"` if it
-existed — same internal file layout: `tile_0.tscn`…`tile_5.tscn`, `tile_material.tres`,
-`tile_colors.tres`).
-
-Switching is **pre-start only** (rebuilding already-spawned `_tile_nodes` on the fly isn't
-implemented; see `TileView.build_node()` — the scene is picked once, at spawn time).
+The static scene caches are filled once per process, so switching is only safe through that
+reload path (already-spawned nodes are not rebuilt).
 
 `view/editor/` (in-game world editor, see `.claude/skills/match3-world-editor/SKILL.md`) is not a pack
 and isn't swappable, but its toolbar renders dropdown previews by instancing the same pack scenes via
@@ -69,7 +74,9 @@ GDScript constant either — they're plain literals hand-picked to match
 `GeometryConstants.DEFAULT_TILE_RADIUS`/`CELL_SIZE` (see `view/geometry_constants.gd`), not automated.
 
 - `ui_pack/` — UI assets. Currently: `standard_pack/`: `ui_font.woff2` (Inter, OFL — license file
-  alongside; also the project `gui/theme/custom_font`, update it when swapping), `menu_icon.svg`.
+  alongside; also the project `gui/theme/custom_font`, update it when swapping), `menu_icon.svg`,
+  `rpg_theme.tres` (project `gui/theme/custom`: dark panels, bronze borders, gold hover — styles
+  every default Button/Panel/OptionButton/ProgressBar/popup).
 
 ## Rules for new visuals
 
@@ -85,7 +92,7 @@ GDScript constant either — they're plain literals hand-picked to match
 
 `view/tile_color_palette.gd` (`TileColorPalette`, a `Resource` with `@export var colors: Array[Color]`)
 isn't hardcoded in `TileView` — it lives as `tile_colors.tres` inside the pack
-(`view/packs/tiles_pack/crystal_pack/tile_colors.tres`), loaded by the same `_static_init()`.
+(`tile_colors.tres` of the active tiles pack), loaded by the same `load_packs()`.
 
 ## New global class → rescan the cache
 

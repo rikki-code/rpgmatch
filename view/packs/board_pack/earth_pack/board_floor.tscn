@@ -1,0 +1,13 @@
+[gd_scene format=3]
+
+[ext_resource type="Material" path="res://view/packs/board_pack/earth_pack/floor_material.tres" id="1"]
+
+[sub_resource type="PlaneMesh" id="Floor"]
+size = Vector2(60, 60)
+
+[node name="BoardFloor" type="Node3D"]
+
+[node name="Plane" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.46, 0)
+mesh = SubResource("Floor")
+surface_material_override/0 = ExtResource("1")

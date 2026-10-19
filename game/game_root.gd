@@ -134,8 +134,9 @@ func _ready() -> void:
 		if editor_mode_controller.active:
 			editor_mode_controller.toggle()
 	)
-	game_menu.settings_applied.connect(func(params: WorldGenParams) -> void:
+	game_menu.settings_applied.connect(func(params: WorldGenParams, packs: Dictionary) -> void:
 		GameSession.params = params
+		_apply_packs(packs)
 		_restart()
 	)
 	game_menu.reset_requested.connect(_restart)
@@ -168,6 +169,14 @@ func _apply_pending_mode() -> void:
 func _set_battle_level(level: int) -> void:
 	GameSession.battle_level = level
 	switch_mode(current_mode)
+
+# The static scene caches are filled once per process, so they are refilled before the reload.
+func _apply_packs(packs: Dictionary) -> void:
+	PackCatalog.apply(packs)
+	PackPaths.refresh()
+	TileView.load_packs()
+	CellLayer.load_packs()
+	VfxPool.load_packs()
 
 ## Reloading the scene is the reset: every module gets rebuilt from GameSession.
 func _restart() -> void:

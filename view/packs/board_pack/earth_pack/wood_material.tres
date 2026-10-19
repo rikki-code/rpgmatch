@@ -1,0 +1,9 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://view/packs/board_pack/earth_pack/wood_noise.tres" id="1"]
+
+[resource]
+albedo_color = Color(0.4, 0.25, 0.12, 1)
+albedo_texture = ExtResource("1")
+roughness = 0.8
+metallic = 0.0

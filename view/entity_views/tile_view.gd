@@ -11,6 +11,9 @@ static var TILE_SCENES_BY_COLOR: Array[PackedScene]
 static var TILE_COLORS: Array[Color]
 
 static func _static_init() -> void:
+	load_packs()
+
+static func load_packs() -> void:
 	SCENES_BY_VISUAL_KIND = {
 		&"bomb": load(PackPaths.SPECIAL_TILES_PACK + "tile_bomb.tscn"),
 		&"arrow_blaster_row": load(PackPaths.SPECIAL_TILES_PACK + "tile_arrow_blaster.tscn"),
