@@ -28,6 +28,13 @@ var turn_blast_points := 0.0
 func _init(resolver: EffectResolver) -> void:
 	resolver.effect_applied.connect(_on_effect_applied)
 
+## Combo is per turn and resets at the next turn start, so the total is all a save needs.
+func to_dict() -> Dictionary:
+	return {"total": total_score}
+
+func restore(data: Dictionary) -> void:
+	total_score = int(data["total"])
+
 ## Called at PhasePlayerInput.enter — fresh combo chain per turn.
 func reset_combo() -> void:
 	combo_wave = 0

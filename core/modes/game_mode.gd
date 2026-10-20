@@ -10,7 +10,7 @@ func display_name() -> String:
 
 ## ctx already has board/resolver/score_tracker set. A mode that needs more
 ## (e.g. BattleMode setting ctx.battle) does so here before returning.
-## `level` = progression level (GameSession.battle_level); modes that don't scale ignore it.
+## `level` = progression level (RunConfig.level); modes that don't scale ignore it.
 func build_phases(_ctx: TurnContext, _level: int) -> Array[TurnPhase]:
 	return []
 

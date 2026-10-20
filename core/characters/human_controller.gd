@@ -7,6 +7,9 @@ extends CharacterController
 func is_human() -> bool:
 	return true
 
+func to_dict() -> Dictionary:
+	return {"type": "human"}
+
 ## Keeps the clicked target while the action can take it; otherwise (e.g. an
 ## enemy when switching to Defend) falls back to the action's best pick.
 func choose_target(actor: Character, action: BattleAction, battle: BattleContext) -> Character:

@@ -40,6 +40,15 @@ func setup(p_tracker: ActivityTracker) -> void:
 			shelf.append(_create(scene))
 		_free[scene] = shelf
 
+# Only valid with no effect in flight (BoardView3D.reskin waits for idle).
+func reskin() -> void:
+	for child in get_children():
+		child.queue_free()
+	_free.clear()
+	_live.clear()
+	_lights = 0
+	setup(tracker)
+
 # Draws every effect once at near-zero scale so shaders compile on load, not on the first bomb.
 func warm_up(at: Vector3) -> void:
 	var explosion := acquire(EXPLOSION_SCENE) as TileExplosion

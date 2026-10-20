@@ -6,8 +6,8 @@
 class_name BattleView
 extends Control
 
-## Victory -> next level on a new board; defeat -> retry the same level.
-signal continue_requested(victory: bool)
+## advance: victory against the AI -> next level on a new board; otherwise replay the same level.
+signal continue_requested(advance: bool)
 signal exit_requested
 
 ## Charge aura: visible from the first point, full once the action would
@@ -193,9 +193,12 @@ func _on_battle_ended(victory: bool) -> void:
 	for character: Character in _cards:
 		_cards[character].set_active(false, false)
 	_update_target_marks()
-	# Named loser side reads right in PvP too ("Devil wins!").
-	_result_label.text = "Victory!" if victory else "%s wins!" % _battle.enemies[0].display_name
-	_continue_button.text = "Next battle" if victory else "Retry"
+	if _battle.is_versus():
+		_result_label.text = "%s wins!" % (_battle.allies if victory else _battle.enemies)[0].display_name
+		_continue_button.text = "Rematch"
+	else:
+		_result_label.text = "Victory!" if victory else "%s wins!" % _battle.enemies[0].display_name
+		_continue_button.text = "Next battle" if victory else "Retry"
 	_overlay.visible = true
 
 func _on_card_clicked(character: Character) -> void:
@@ -323,10 +326,10 @@ func _build_overlay() -> void:
 
 	_continue_button = Button.new()
 	_continue_button.custom_minimum_size = Vector2(220, 44)
-	_continue_button.pressed.connect(func() -> void: continue_requested.emit(_battle.is_victory()))
+	_continue_button.pressed.connect(func() -> void: continue_requested.emit(_battle.is_victory() and not _battle.is_versus()))
 	box.add_child(_continue_button)
 	var leave := Button.new()
-	leave.text = "Back to infinite mode"
+	leave.text = "Main menu"
 	leave.custom_minimum_size = Vector2(220, 44)
 	leave.pressed.connect(func() -> void: exit_requested.emit())
 	box.add_child(leave)

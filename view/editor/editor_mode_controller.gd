@@ -101,7 +101,7 @@ func select_tile(entry: EditorTileCatalog.Entry) -> void:
 	_active_tile_entry = entry
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_R:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_R and OS.is_debug_build():
 		toggle()
 
 func _unhandled_input(event: InputEvent) -> void:

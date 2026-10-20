@@ -24,6 +24,52 @@ func _init(p_width: int, p_height: int) -> void:
 	width = p_width
 	height = p_height
 
+## The full board for a save. rng state goes out as strings: JSON numbers lose 64-bit precision.
+func to_dict() -> Dictionary:
+	var cell_list := []
+	for cell: GridCell in all_cells():
+		cell_list.append({
+			"x": cell.position.x,
+			"y": cell.position.y,
+			"kind": String(cell.kind.id()),
+			"tile": EntityCodec.encode(cell.occupant),
+		})
+	return {
+		"width": width,
+		"height": height,
+		"colors": colors,
+		"chances": {
+			"prisms": prisms_spawn_chance,
+			"arrow_blaster": arrow_blaster_spawn_chance,
+			"bomb": bomb_spawn_chance,
+			"color_bomb": color_bomb_spawn_chance,
+		},
+		"rng": {"seed": str(rng.seed), "state": str(rng.state)},
+		"cells": cell_list,
+	}
+
+static func from_dict(data: Dictionary) -> BoardGraph:
+	var graph := BoardGraph.new(int(data["width"]), int(data["height"]))
+	graph.colors.clear()
+	for color in data["colors"]:
+		graph.colors.append(int(color))
+	var chances: Dictionary = data["chances"]
+	graph.prisms_spawn_chance = float(chances["prisms"])
+	graph.arrow_blaster_spawn_chance = float(chances["arrow_blaster"])
+	graph.bomb_spawn_chance = float(chances["bomb"])
+	graph.color_bomb_spawn_chance = float(chances["color_bomb"])
+	graph.restore_rng(data["rng"])
+	for entry: Dictionary in data["cells"]:
+		var cell := GridCell.new(Vector2i(int(entry["x"]), int(entry["y"])), CellKindCodec.decode(StringName(entry["kind"])))
+		cell.occupant = EntityCodec.decode(entry["tile"])
+		graph.add_cell(cell)
+	graph.link_grid_neighbors()
+	return graph
+
+func restore_rng(data: Dictionary) -> void:
+	rng.seed = int(data["seed"])
+	rng.state = int(data["state"])
+
 func random_color() -> int:
 	return colors[rng.randi_range(0, colors.size() - 1)]
 

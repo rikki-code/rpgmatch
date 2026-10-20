@@ -1,9 +1,14 @@
-## Settings that outlive a scene reload (Reset / mode change / new board size).
+## State that outlives a scene reload (Restart, next battle).
 class_name GameSession
 extends RefCounted
 
-static var params: WorldGenParams
-## Index into GameRoot.available_modes; 1 = Battle (the default for now).
-static var mode_index := 1
-## Battle progression; +1 per victory, kept across the reloads between battles.
-static var battle_level := 1
+static var launch: RunConfig
+## GameSnapshot data for GameRoot to restore instead of generating a new game; consumed on read.
+static var resume: Dictionary
+
+static var _profile: ProfileData
+
+static func profile() -> ProfileData:
+	if _profile == null:
+		_profile = SaveStore.load_profile()
+	return _profile

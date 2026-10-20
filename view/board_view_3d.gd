@@ -32,6 +32,21 @@ func setup(p_board: BoardGraph) -> void:
 	refresh()
 	vfx.warm_up(BoardGeometry.lifted_world(Vector2i.ZERO))
 
+# Swaps the visuals for the pack just loaded (TileView/CellLayer/VfxPool.load_packs)
+# without touching the board; waits out running animations first.
+func reskin() -> void:
+	await _tracker.wait_idle()
+	if not is_inside_tree():
+		return
+	cells.reskin(board)
+	tiles.reskin()
+	vfx.reskin()
+	# Paused tweens never finish: warming up under the pause menu would stall the next reskin.
+	while is_inside_tree() and get_tree().paused:
+		await get_tree().process_frame
+	if is_inside_tree():
+		vfx.warm_up(BoardGeometry.lifted_world(Vector2i.ZERO))
+
 func _register_presenters() -> void:
 	var appear := AppearTilePresenter.new()
 	for effect_script in [EffectSpawnTile, EffectSpawnBombTile, EffectSpawnArrowBlasterTile, EffectSpawnPrismTile, EffectPlaceTile]:

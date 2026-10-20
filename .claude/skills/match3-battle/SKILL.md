@@ -37,7 +37,7 @@ description: >
 | New action (heal, ability) | Subclass `BattleAction` (incl. `visual_kind()`); add an instance to `BattleContext.actions`; add its color to the pack's `action_colors.tres`. |
 | New unit | One `UnitType.new(...)` line in a catalog; pick its cost, then calibrate (below). |
 | New controller (network, scripted) | Subclass `CharacterController`; override `choose_action/move/target`. |
-| New battle variant (co-op, boss) | Configure `BattleMode.new(name, ally_humans, enemy_humans, ally_ratio, enemy_ratio)` in `GameRoot.available_modes`. Not a subclass. |
+| New battle variant (co-op, boss) | Configure `BattleMode.new(name, ally_humans, enemy_humans, ally_ratio, enemy_ratio)` from a `ModeDefinition` (`core/modes/definitions/`) registered in `ModeCatalog`. Not a subclass. |
 | New level-scaled value | `LevelCurve.percent/linear/stepped`. Never hand-rolled. |
 
 ## Rules

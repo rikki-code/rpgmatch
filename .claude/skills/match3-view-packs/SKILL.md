@@ -46,15 +46,20 @@ of the same category.
 ## Switching the active pack
 
 `PackCatalog` (`view/pack_catalog.gd`) lists the selectable packs per category (tiles, board) and
-saves the choice in `user://packs.cfg`. The menu's Settings page has a dropdown per category; Apply
-calls `GameRoot._apply_packs` (save, `PackPaths.refresh()`, `TileView/CellLayer/VfxPool.load_packs()`)
-and reloads the scene. A new pack = a folder with the same file layout + one entry in
+saves the choice in `user://packs.cfg`. The pause menu's Settings page has a dropdown per category; a
+pick calls `GameRoot._apply_pack` (save, `PackPaths.refresh()`, `TileView/CellLayer/VfxPool.load_packs()`,
+then `BoardView3D.reskin()`, `QuestHud.reskin()`, `EditorToolbar.invalidate_icons()`) — the live board
+swaps models in place, no new level. A new pack = a folder with the same file layout + one entry in
 `PackCatalog.OPTIONS`. `PackPaths` holds the active base path of every category (the fixed ones are
 consts). `PackCatalog` must not reference the consumers: `PackPaths` reads it during static init and
 a back-reference makes a static-init cycle.
 
-The static scene caches are filled once per process, so switching is only safe through that
-reload path (already-spawned nodes are not rebuilt).
+The static scene caches are filled once per process and already-spawned nodes are not rebuilt, so
+every consumer of a pack needs a reskin path: `TileLayer.reskin()` (rebuilds nodes from a fresh
+`EntityView`, `dispose()` drops the old pool), `CellLayer.reskin()`, `VfxPool.reskin()`, `QuestHud.reskin()`.
+`BoardView3D.reskin()` waits for `ActivityTracker` idle first (tweens on replaced nodes would never
+finish), and defers the VFX warm-up past the pause menu (paused tweens never finish either). A new pack
+consumer that caches nodes or scenes must join this chain.
 
 `view/editor/` (in-game world editor, see `.claude/skills/match3-world-editor/SKILL.md`) is not a pack
 and isn't swappable, but its toolbar renders dropdown previews by instancing the same pack scenes via

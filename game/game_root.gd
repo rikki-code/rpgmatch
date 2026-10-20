@@ -3,7 +3,6 @@
 class_name GameRoot
 extends Node3D
 
-@export var world_gen_params: WorldGenParams
 @export var dev_mode: bool = false
 
 var board: BoardGraph
@@ -12,12 +11,10 @@ var turn_manager: TurnManager
 var swap_controller: SwapController
 var detonate_controller: DetonateController
 var quest_manager: QuestManager
+var stats_recorder: StatsRecorder
 var current_mode: GameMode
-var available_modes: Array[GameMode] = [
-	InfiniteMode.new(),
-	BattleMode.new("Battle", [UnitType.hero()], [], 0.92, 1.0),
-	BattleMode.new("PvP", [UnitType.hero()], [UnitType.devil()], 1.0, 1.0),
-]
+## Debug builds only: one default-settings mode per ModeCatalog entry, for the editor toolbar's mode dropdown.
+var dev_modes: Array[GameMode] = []
 var board_view: BoardView3D
 var editor_mode_controller: EditorModeController
 var score_hud: ScoreHud
@@ -25,26 +22,43 @@ var quest_hud: QuestHud
 var battle_view: BattleView
 var camera: Camera3D
 var game_menu: GameMenu
+var editor_toolbar: EditorToolbar
 ## Mode chosen mid-turn, applied once the turn manager parks (see switch_mode).
 var _pending_mode: GameMode
+## Saved game to restore, consumed by the first _apply_mode (the mode builds a fresh battle that must be replaced).
+var _resume: Dictionary
 
 func _ready() -> void:
-	if GameSession.params == null:
-		GameSession.params = world_gen_params.duplicate() if world_gen_params != null else WorldGenParams.new()
-	var start_mode := available_modes[GameSession.mode_index]
-	board = BoardGenerator.generate(start_mode.board_params(GameSession.params, GameSession.battle_level))
+	# Running game_root.tscn directly (F6) has no start screen to come from.
+	if GameSession.launch == null:
+		GameSession.launch = RunConfig.defaults(ModeCatalog.find(ModeCatalog.BATTLE))
+	var launch := GameSession.launch
+	var start_mode := launch.create_mode()
+	_resume = GameSession.resume
+	GameSession.resume = {}
+	if _resume.is_empty():
+		board = BoardGenerator.generate(start_mode.board_params(launch.world_params(), launch.level))
+	else:
+		board = BoardGraph.from_dict(_resume["board"])
 
 	ctx = TurnContext.new(board)
 	ctx.resolver = EffectResolver.new(board)
 	ctx.score_tracker = ScoreTracker.new(ctx.resolver)
+	if not _resume.is_empty():
+		ctx.score_tracker.restore(_resume["score"])
 	swap_controller = SwapController.new(ctx)
 	ctx.swap_controller = swap_controller
 	detonate_controller = DetonateController.new(ctx)
 	ctx.detonate_controller = detonate_controller
 	ctx.shuffle_controller = ShuffleController.new(ctx)
 
+	stats_recorder = StatsRecorder.new(ctx.score_tracker, GameSession.profile().stats_for(launch.mode_id))
+
 	quest_manager = QuestManager.new(board, ctx.resolver, RandomQuestGenerator.new())
-	quest_manager.fill_from_generator()
+	if _resume.is_empty():
+		quest_manager.fill_from_generator()
+	else:
+		quest_manager.restore(_resume["quests"])
 	quest_manager.quest_completed.connect(func(quest: QuestProgress) -> void:
 		ctx.score_tracker.award_bonus(quest.definition.target_count * QUEST_REWARD_PER_TILE)
 	)
@@ -64,9 +78,9 @@ func _ready() -> void:
 	ctx.shuffle_controller.shuffled.connect(_after_board_move)
 
 	camera = $Camera3D
-	_fit_content_scale()
+	UiScale.fit(get_window())
 	get_tree().root.size_changed.connect(func() -> void:
-		_fit_content_scale()
+		UiScale.fit(get_window())
 		_refit_camera()
 	)
 
@@ -77,20 +91,20 @@ func _ready() -> void:
 	editor_mode_controller.setup(camera, board_view, ctx)
 	var editor_grid_overlay: EditorGridOverlay = $EditorGridOverlay
 	editor_grid_overlay.setup(board)
-	var editor_toolbar: EditorToolbar = $UILayer/EditorToolbar
+	editor_toolbar = $UILayer/EditorToolbar
 
 	editor_mode_controller.mode_changed.connect(func(active: bool) -> void:
 		input_controller.set_editor_active(active)
 		editor_grid_overlay.set_active(active)
 		editor_toolbar.set_panel_visible(active)
 		if active:
-			editor_toolbar.setup(editor_mode_controller.cell_catalog, editor_mode_controller.tile_catalog, available_modes)
-			editor_toolbar.show_state(current_mode, GameSession.battle_level)
+			editor_toolbar.setup(editor_mode_controller.cell_catalog, editor_mode_controller.tile_catalog, dev_modes)
+			editor_toolbar.show_state(_dev_mode_index(), GameSession.launch.level)
 	)
 	editor_toolbar.cell_kind_selected.connect(editor_mode_controller.select_cell_kind)
 	editor_toolbar.remove_cell_selected.connect(editor_mode_controller.select_remove_cell)
 	editor_toolbar.tile_selected.connect(editor_mode_controller.select_tile)
-	editor_toolbar.game_mode_selected.connect(switch_mode)
+	editor_toolbar.game_mode_selected.connect(func(mode: GameMode) -> void: _switch_definition(dev_modes.find(mode)))
 	editor_toolbar.battle_level_selected.connect(_set_battle_level)
 
 	var idle_throttle_controller: IdleThrottleController = $IdleThrottleController
@@ -104,12 +118,12 @@ func _ready() -> void:
 	quest_hud = $UILayer/QuestHud
 	quest_hud.setup(quest_manager)
 	battle_view = $UILayer/BattleView
-	battle_view.continue_requested.connect(func(victory: bool) -> void:
-		if victory:
-			GameSession.battle_level += 1
+	battle_view.continue_requested.connect(func(advance: bool) -> void:
+		if advance:
+			GameSession.launch.level += 1
 		_restart()
 	)
-	battle_view.exit_requested.connect(func() -> void: switch_mode(available_modes[0]))
+	battle_view.exit_requested.connect(SceneRouter.to_menu)
 
 	var move_assist := MoveAssist.new()
 	$UILayer.add_child(move_assist)
@@ -118,31 +132,14 @@ func _ready() -> void:
 	move_assist.hint_requested.connect(func(move: MoveFinder.Move) -> void: _highlight_move(move.cell_a, move.cell_b))
 
 	game_menu = $UILayer/GameMenu
-	var mode_names: Array[String] = []
-	for mode in available_modes:
-		mode_names.append(mode.display_name())
-	game_menu.setup(mode_names, GameSession.mode_index, GameSession.params)
-	game_menu.editor_selected.connect(func() -> void:
-		editor_mode_controller.toggle()
-		game_menu.show_selected(GameSession.mode_index, editor_mode_controller.active)
-	)
-	editor_mode_controller.mode_changed.connect(func(active: bool) -> void:
-		game_menu.show_selected(GameSession.mode_index, active)
-	)
-	game_menu.mode_selected.connect(func(index: int) -> void:
-		switch_mode(available_modes[index])
-		if editor_mode_controller.active:
-			editor_mode_controller.toggle()
-	)
-	game_menu.settings_applied.connect(func(params: WorldGenParams, packs: Dictionary) -> void:
-		GameSession.params = params
-		_apply_packs(packs)
-		_restart()
-	)
-	game_menu.reset_requested.connect(_restart)
-	game_menu.quit_requested.connect(func() -> void: get_tree().quit())
+	if OS.is_debug_build():
+		for definition in ModeCatalog.all():
+			dev_modes.append(definition.create_mode(definition.default_settings()))
+	game_menu.pack_selected.connect(_apply_pack)
+	game_menu.restart_requested.connect(_restart)
+	game_menu.exit_requested.connect(SceneRouter.to_menu)
 
-	_apply_mode(available_modes[GameSession.mode_index])
+	_apply_mode(start_mode)
 
 ## Rebuilds the TurnManager from a different mode, reusing the same board/
 ## resolver/score. Refused mid-turn (same gate the world editor uses) unless
@@ -167,28 +164,47 @@ func _apply_pending_mode() -> void:
 ## Rebuilds the battle at `level` on the current board (an edited board is
 ## kept — only Next battle/Reset regenerate it for the level).
 func _set_battle_level(level: int) -> void:
-	GameSession.battle_level = level
+	GameSession.launch.level = level
 	switch_mode(current_mode)
 
-# The static scene caches are filled once per process, so they are refilled before the reload.
-func _apply_packs(packs: Dictionary) -> void:
-	PackCatalog.apply(packs)
+func _dev_mode_index() -> int:
+	return ModeCatalog.all().find(GameSession.launch.definition())
+
+## Debug mode switch on the same board: the launch config follows, so Restart keeps the new mode.
+func _switch_definition(index: int) -> void:
+	var level := GameSession.launch.level
+	GameSession.launch = RunConfig.defaults(ModeCatalog.all()[index])
+	GameSession.launch.level = level
+	switch_mode(dev_modes[index])
+
+# The static scene caches are filled once per process; the live board swaps its models in place.
+func _apply_pack(category: StringName, id: String) -> void:
+	PackCatalog.apply({category: id})
 	PackPaths.refresh()
 	TileView.load_packs()
 	CellLayer.load_packs()
 	VfxPool.load_packs()
+	board_view.reskin()
+	editor_toolbar.invalidate_icons()
+	if quest_hud.visible:
+		quest_hud.reskin()
 
-## Reloading the scene is the reset: every module gets rebuilt from GameSession.
+## Restart is a scene reload: every module gets rebuilt from GameSession.launch.
 func _restart() -> void:
 	get_tree().paused = false
 	get_tree().reload_current_scene()
 
 func _apply_mode(mode: GameMode) -> void:
 	current_mode = mode
-	GameSession.mode_index = available_modes.find(mode)
-	game_menu.show_selected(GameSession.mode_index, editor_mode_controller.active)
-	turn_manager = TurnManager.new(ctx, mode.build_phases(ctx, GameSession.battle_level))
+	turn_manager = TurnManager.new(ctx, mode.build_phases(ctx, GameSession.launch.level))
+	if not _resume.is_empty():
+		_restore_battle()
 	ctx.turn_manager = turn_manager
+	turn_manager.turn_cycle_completed.connect(_save_stats)
+	turn_manager.turn_cycle_completed.connect(_save_run)
+	if ctx.battle != null:
+		stats_recorder.note_level(GameSession.launch.level)
+		ctx.battle.battle_ended.connect(_on_battle_ended)
 	score_hud.visible = mode.shows_score_hud()
 	quest_hud.visible = mode.shows_quest_hud()
 	battle_view.visible = mode.shows_battle_view()
@@ -202,6 +218,31 @@ func _apply_mode(mode: GameMode) -> void:
 		turn_manager.start()
 	elif not editor_mode_controller.settled.is_connected(_start_turn_manager):
 		editor_mode_controller.settled.connect(_start_turn_manager, CONNECT_ONE_SHOT)
+
+# build_phases rolled a new encounter with the board rng, so the saved battle and the rng state go back in after it.
+func _restore_battle() -> void:
+	if ctx.battle != null:
+		ctx.battle = BattleContext.from_dict(_resume["battle"], board.rng)
+	board.restore_rng(_resume["board"]["rng"])
+	_resume = {}
+
+func _save_run() -> void:
+	if editor_mode_controller.active or (ctx.battle != null and ctx.battle.is_battle_over()):
+		return
+	SaveStore.save_run(RunSave.new(GameSession.launch, GameSnapshot.capture(ctx, quest_manager)))
+
+func _on_battle_ended(victory: bool) -> void:
+	stats_recorder.note_battle_ended(victory)
+	SaveStore.delete_run(GameSession.launch.mode_id)
+	_save_stats()
+
+func _save_stats() -> void:
+	if stats_recorder.dirty:
+		SaveStore.save_profile(GameSession.profile())
+		stats_recorder.dirty = false
+
+func _exit_tree() -> void:
+	_save_stats()
 
 func _start_turn_manager() -> void:
 	turn_manager.start()
@@ -225,21 +266,6 @@ const QUEST_REWARD_PER_TILE := 5
 const CAMERA_HEIGHT := 15.0
 const CAMERA_TILT_DEGREES := 5.0
 const CAMERA_MARGIN := 2.0
-
-## Enlarges all 2D UI (text, buttons, cards, HUD) for touch; the board fit
-## works in the scaled canvas, so it adapts on its own.
-const UI_SCALE := 1.25
-
-## Portrait screens (phones) get the project's base size turned portrait, so
-## the UI isn't shrunk to fit a 1920-wide landscape canvas.
-func _fit_content_scale() -> void:
-	var window := get_window()
-	var base := Vector2i(ProjectSettings.get_setting("display/window/size/viewport_width"), ProjectSettings.get_setting("display/window/size/viewport_height"))
-	var portrait := window.size.y > window.size.x
-	var wanted := Vector2i(mini(base.x, base.y), maxi(base.x, base.y)) if portrait else base
-	if window.content_scale_size != wanted:
-		window.content_scale_size = wanted
-	window.content_scale_factor = UI_SCALE
 
 ## Deferred a frame so HUD containers have their final size after a mode switch.
 func _refit_camera() -> void:

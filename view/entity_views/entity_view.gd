@@ -14,5 +14,9 @@ func play_destroy(_node: Node3D, _owner_node: Node, _on_complete: Callable) -> T
 func release_node(node: Node3D) -> void:
 	node.queue_free()
 
+## Drops pooled nodes: the view is being replaced (new pack).
+func dispose() -> void:
+	pass
+
 func set_highlighted(_node: Node3D, _on: bool) -> void:
 	pass

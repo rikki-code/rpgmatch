@@ -40,6 +40,37 @@ var power_multiplier := 1.0
 func _init(p_resolver: CombatResolver) -> void:
 	resolver = p_resolver
 
+## A save is taken between turns, so the pending action and target are not part of it.
+func to_dict() -> Dictionary:
+	var allies_data := []
+	for character in allies:
+		allies_data.append(character.to_dict())
+	var enemies_data := []
+	for character in enemies:
+		enemies_data.append(character.to_dict())
+	return {
+		"level": level,
+		"power_multiplier": power_multiplier,
+		"allies": allies_data,
+		"enemies": enemies_data,
+		"queue": queue.to_dict(all_characters()),
+	}
+
+static func from_dict(data: Dictionary, rng: RandomNumberGenerator) -> BattleContext:
+	var battle := BattleContext.new(CombatResolver.new(rng))
+	battle.level = int(data["level"])
+	battle.power_multiplier = float(data["power_multiplier"])
+	for entry: Dictionary in data["allies"]:
+		battle.allies.append(Character.from_dict(entry))
+	for entry: Dictionary in data["enemies"]:
+		battle.enemies.append(Character.from_dict(entry))
+	battle.queue.restore(data["queue"], battle.all_characters())
+	return battle
+
+## Humans on both sides (PvP): no AI opponent to beat, so no progression.
+func is_versus() -> bool:
+	return allies.any(func(c: Character) -> bool: return c.controller.is_human()) and enemies.any(func(c: Character) -> bool: return c.controller.is_human())
+
 func all_characters() -> Array[Character]:
 	var result: Array[Character] = []
 	result.append_array(allies)

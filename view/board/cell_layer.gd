@@ -34,6 +34,14 @@ func build(board: BoardGraph) -> void:
 	for cell: GridCell in board.all_cells():
 		_add(cell)
 
+# Drops everything built from the previous pack; the scenes were reloaded by load_packs().
+func reskin(board: BoardGraph) -> void:
+	for child in get_children():
+		child.queue_free()
+	_nodes.clear()
+	_visual_kinds.clear()
+	build(board)
+
 # The world editor changes topology and cell kinds at runtime, so this reruns after each edit.
 func sync(board: BoardGraph) -> void:
 	var live: Dictionary = {}  # Vector2i -> true

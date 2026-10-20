@@ -48,6 +48,8 @@ const POOL_PER_KEY := 12
 
 # Released nodes by look (kind + color); a reused node keeps its own material.
 var _free: Dictionary = {}  # String -> Array[Node3D]
+## A node still playing out on a replaced view must not land back on its shelf.
+var _disposed := false
 
 func build_node(entity: BoardEntity) -> Node3D:
 	var tile: Tile = entity
@@ -60,7 +62,17 @@ func build_node(entity: BoardEntity) -> Node3D:
 	node.set_meta(&"rest_basis", node.basis)
 	return node
 
+func dispose() -> void:
+	_disposed = true
+	for shelf: Array in _free.values():
+		for node: Node3D in shelf:
+			node.queue_free()
+	_free.clear()
+
 func release_node(node: Node3D) -> void:
+	if _disposed:
+		node.queue_free()
+		return
 	var key: String = node.get_meta(&"pool_key", "")
 	if not _free.has(key):
 		_free[key] = []

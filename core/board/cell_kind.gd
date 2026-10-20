@@ -9,5 +9,9 @@ func can_hold_tile() -> bool:
 func display_name() -> String:
 	return "cell"
 
+## Saved with the board; a new kind also joins CellKindCodec.
+func id() -> StringName:
+	return &""
+
 func visual_kind() -> StringName:
 	return &"ground"

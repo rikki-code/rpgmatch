@@ -14,6 +14,9 @@ var skill: float
 func _init(p_skill: float = MAX_SKILL) -> void:
 	skill = p_skill
 
+func to_dict() -> Dictionary:
+	return {"type": "ai", "skill": skill}
+
 static func skill_for_level(level: int) -> float:
 	return LevelCurve.linear(BASE_SKILL, SKILL_PER_LEVEL, level, MAX_SKILL)
 

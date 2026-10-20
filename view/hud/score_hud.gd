@@ -20,6 +20,7 @@ var _pending_popup_amount: int = 0
 func setup(score_tracker: ScoreTracker) -> void:
 	_score_tracker = score_tracker
 	_score_counter = RollingCounter.new(_score_label, "Score: %d")
+	_score_counter.reset(score_tracker.total_score)
 	_combo_label.pivot_offset = _combo_label.size / 2.0
 	_combo_label.text = ""
 	_combo_label.modulate.a = 0.0

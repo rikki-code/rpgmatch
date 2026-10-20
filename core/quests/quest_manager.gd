@@ -26,6 +26,30 @@ func add_quest(definition: QuestDefinition) -> void:
 	active_quests.append(progress)
 	quest_added.emit(progress)
 
+func to_dict() -> Dictionary:
+	var quests := []
+	for quest in active_quests:
+		quests.append({
+			"kind": String(quest.definition.target_kind_id),
+			"count": quest.definition.target_count,
+			"name": quest.definition.display_name,
+			"current": quest.current_count,
+		})
+	return {"difficulty": difficulty, "quests": quests}
+
+## Call before a HUD subscribes; nothing is generated, so the board rng is untouched.
+func restore(data: Dictionary) -> void:
+	difficulty = int(data["difficulty"])
+	active_quests.clear()
+	for entry: Dictionary in data["quests"]:
+		var definition := QuestDefinition.new()
+		definition.target_kind_id = StringName(entry["kind"])
+		definition.target_count = int(entry["count"])
+		definition.display_name = entry["name"]
+		var progress := QuestProgress.new(definition)
+		progress.current_count = int(entry["current"])
+		active_quests.append(progress)
+
 func fill_from_generator() -> void:
 	if generator == null:
 		return

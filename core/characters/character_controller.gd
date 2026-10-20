@@ -5,6 +5,10 @@
 class_name CharacterController
 extends RefCounted
 
+## Saved with the character; a new controller also joins ControllerCodec.
+func to_dict() -> Dictionary:
+	return {"type": "controller"}
+
 ## True = PhaseCharacterInput unlocks board input and waits for the player.
 func is_human() -> bool:
 	return false

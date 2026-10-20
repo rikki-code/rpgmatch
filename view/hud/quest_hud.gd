@@ -70,6 +70,18 @@ func _add_card(quest: QuestProgress) -> void:
 	if texture != null and _counts.has(quest):
 		icon.texture = texture
 
+func reskin() -> void:
+	_tile_view.dispose()
+	_tile_view = TileView.new()
+	_icon_cache.clear()
+	for quest: QuestProgress in _cards.keys():
+		if not _cards.has(quest):
+			continue
+		var icon: TextureRect = _cards[quest].get_child(0)
+		var texture := await _get_icon(quest.definition.target_kind_id)
+		if texture != null and is_instance_valid(icon):
+			icon.texture = texture
+
 func _update_card(quest: QuestProgress) -> void:
 	var label: Label = _counts.get(quest)
 	if label != null:

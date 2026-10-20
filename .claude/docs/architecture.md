@@ -242,12 +242,55 @@ The model resolves a whole wave synchronously; the view plays it back afterwards
 - `core/modes/`: `GameMode` → `InfiniteMode`, `BattleMode`. A mode supplies the phase list
   (`build_phases(ctx, level)`), generation params (`board_params(base, level)`) and HUD visibility.
 - PvP is configuration, not a subclass: `BattleMode.new(name, ally_humans, enemy_humans,
-  ally_budget_ratio, enemy_budget_ratio)`; `GameRoot.available_modes` lists Infinite, Battle, PvP.
-- `game/game_session.gd` (`GameSession`, static vars) is the only persistent state: generation params,
-  mode index, `battle_level`. Core never reads it; `GameRoot` passes values in.
-- `GameRoot.switch_mode()` rebuilds the `TurnManager` on the same board (mid-turn: on `held`). Reset,
-  settings and the next battle reload the scene (`reload_current_scene()`), rebuilding every module
-  from `GameSession`.
+  ally_budget_ratio, enemy_budget_ratio)` (PvP: N humans per side, budget 0 = no generated filler).
+- What the start screen knows about a mode is a `ModeDefinition` (`core/modes/`, subclasses in
+  `definitions/`, listed in `ModeCatalog`): title, `settings_schema()` (`SettingSpec`
+  list — the setup form is built from it), `create_mode(settings)`, `world_params(settings)`,
+  `start_level(settings)`. `RunConfig` = mode id + settings + progression `level`; it is everything a
+  scene reload needs to rebuild the same game.
+- `game/game_session.gd` (`GameSession.launch: RunConfig`, static) is the only state that survives a
+  reload. Core never reads it; `GameRoot` passes values in. `SceneRouter` moves between the two
+  top-level scenes: `game/menu_root.tscn` (start screen, the project's main scene) and
+  `game/game_root.tscn`.
+- `GameRoot.switch_mode()` rebuilds the `TurnManager` on the same board (mid-turn: on `held`); only
+  the debug-build menu/editor toolbar uses it. Restart and the next battle reload the scene
+  (`reload_current_scene()`), rebuilding every module from `GameSession.launch`.
+
+## Profile and saves
+
+- `core/profile/` (plain data, no file access): `ProfileData` (per-mode `ModeStats` + the last settings
+  used in each setup form; `to_dict`/`from_dict`, `VERSION`), `ModeStats` (int counters with shared keys
+  `runs`, `tiles`, `best_score`, `wins`, `losses`, `best_level`), `StatsRecorder` (self-subscribes to
+  `ScoreTracker`, plus `note_level`/`note_battle_ended`; owner saves when `dirty`).
+- `game/save_store.gd` is the only file access: `user://profile.json`, written to `.tmp` and renamed. JSON
+  makes every number a float, so `from_dict` converts back to int. `GameSession.profile()` loads it once.
+- A `ModeDefinition` picks what to show: `stat_specs()` (`StatSpec` key + label) and settings ranges that
+  may depend on stats (`settings_schema(stats)`; Battle's start level is capped at the best level reached).
+  `resolve_settings(saved, stats)` lays saved settings over the defaults, dropping unknown keys and
+  clamping to today's ranges. `ModeSetupForm` shows the stats and hides settings with one possible value.
+- Saving: `MenuRoot` on Start (remember settings, `runs`+1), `GameRoot` at each turn-cycle end, on
+  `battle_ended` and in `_exit_tree`.
+
+## Continue (per-mode run save)
+
+- One slot per mode: `user://run_<mode>.json` = `RunSave` (`VERSION`, `RunConfig` + `GameSnapshot` data).
+  `RunSave.from_dict` returns null for an unknown version or a malformed file, so a bad save is ignored.
+- `GameSnapshot.capture(ctx, quests)` is taken in `GameRoot._save_run` on `turn_cycle_completed` — the only
+  point where the board is settled and no action is pending — and skipped while the editor is open or the
+  battle is over. It holds `BoardGraph.to_dict` (cells, tiles, colors, spawn chances, rng seed/state as
+  strings), `ScoreTracker.to_dict`, `QuestManager.to_dict` and `BattleContext.to_dict` (characters with
+  hp/shield/controller, initiative queue as roster indices).
+- Everything with a class hierarchy has a codec instead of serializing object graphs: tiles save their
+  factory recipe (`Tile.recipe`, `Tile.from_recipe`; `EntityCodec` dispatches by entity type), cells save
+  `CellKind.id()` (`CellKindCodec`), characters save `controller.to_dict()` (`ControllerCodec`). A new tile
+  kind / cell kind / controller = one line in its factory/codec; nothing else changes.
+- Restore: `MenuRoot._on_continue` puts `run.game` into `GameSession.resume` and loads the game scene;
+  `GameRoot` builds the board with `BoardGraph.from_dict` instead of generating, restores score and quests,
+  and `_restore_battle` swaps the freshly rolled encounter for the saved one and puts the rng state back
+  (the mode's `build_phases` consumed rng). Verified by replaying: a restored game plays out
+  bit-identical to the uninterrupted one (battle, and infinite with detonations).
+- The slot is overwritten at every cycle and deleted on `battle_ended`; Start/Restart leave it until the
+  first new snapshot. The mode page shows Continue next to New game when a slot loads.
 
 ## Battle
 
@@ -271,7 +314,7 @@ The model resolves a whole wave synchronously; the view plays it back afterwards
   cascades) + blast points × `ScoreTracker.BLAST_POWER_FACTOR` (0.3), then × the actor's
   `power_scale`. Combo factor `1 + combo_step × (combo_wave − 1)`; Battle sets `combo_step =
   0.25 + 0.05/level`, Infinite keeps 1.0.
-- Progression: `battle_level` +1 per victory. All level curves go through `LevelCurve`
+- Progression: `RunConfig.level` +1 per victory. All level curves go through `LevelCurve`
   (`core/progression/`: `percent`, `linear`, `stepped`). Units grow by percent of their level-1 stats;
   the board grows from 6×6, 3 colors, no holes up to the menu settings.
 - Units (`UnitType`): level-1 stat ranges, growth, `cost`, `min_level`; `hero()`, `devil()`,
@@ -319,9 +362,11 @@ The model resolves a whole wave synchronously; the view plays it back afterwards
 
 ## Game menu and HUD
 
-- `GameMenu` (`view/menu/`): ☰ / Esc, pauses the tree, emits signals only. Mode list includes
-  "Editor (R)". Settings (size, colors, holes) apply on reload.
-- Orientation: on a portrait window `GameRoot._fit_content_scale()` swaps the base size to
+- `ModeSelect` (`view/menu/`): the start screen — a button per mode and a schema-built setup page (`ModeSetupForm`).
+  `GameMenu`: ☰ / Esc, pauses the tree, emits signals only: Resume, Settings (tile/board pack, applied
+  at once — the live board swaps models, see `BoardView3D.reskin`), Restart, Main menu. `MenuKit`
+  holds the shared builders, `ModeSetupForm` the schema-built form (presets + Advanced toggle).
+- Orientation: on a portrait window `UiScale.fit()` swaps the base size to
   1080×1920, so UI keeps its size on phones. `BattleView` lays cards out as side columns (landscape)
   or rows (portrait: enemies above, allies below, compact cards); both are docked to the board edges.
   Infinite mode: `ScoreHud` always centered above the board; `QuestHud` (`BoxContainer`) is a column

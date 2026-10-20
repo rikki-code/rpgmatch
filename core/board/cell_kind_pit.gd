@@ -17,5 +17,8 @@ func can_hold_tile() -> bool:
 func display_name() -> String:
 	return "pit"
 
+func id() -> StringName:
+	return &"pit"
+
 func visual_kind() -> StringName:
 	return &"pit"

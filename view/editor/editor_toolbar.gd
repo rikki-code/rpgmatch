@@ -49,9 +49,15 @@ func set_panel_visible(visible_now: bool) -> void:
 	_panel.visible = visible_now
 
 ## Mode/level can change while the editor is closed — synced on every open.
-func show_state(current_mode: GameMode, battle_level: int) -> void:
-	_mode_option.select(_modes.find(current_mode))
+func show_state(mode_index: int, battle_level: int) -> void:
+	_mode_option.select(mode_index)
 	_level_spin.set_value_no_signal(battle_level)
+
+## The dropdown icons are renders of the previous pack; setup() rebuilds them on the next open.
+func invalidate_icons() -> void:
+	_populated = false
+	_tile_view.dispose()
+	_tile_view = TileView.new()
 
 func setup(cell_catalog: Array[EditorCellCatalog.Entry], tile_catalog: Array[EditorTileCatalog.Entry], modes: Array[GameMode] = []) -> void:
 	if _populated:

@@ -30,6 +30,25 @@ func _init(p_display_name: String, p_side: Character.Side, p_max_hp: int, p_init
 	base_crit_chance = p_base_crit_chance
 	controller = p_controller
 
+func to_dict() -> Dictionary:
+	return {
+		"name": display_name,
+		"side": side,
+		"max_hp": max_hp,
+		"hp": hp,
+		"initiative": initiative,
+		"power_scale": power_scale,
+		"crit": base_crit_chance,
+		"shield": shield,
+		"controller": controller.to_dict(),
+	}
+
+static func from_dict(data: Dictionary) -> Character:
+	var character := Character.new(data["name"], int(data["side"]) as Character.Side, int(data["max_hp"]), int(data["initiative"]), float(data["power_scale"]), ControllerCodec.decode(data["controller"]), float(data["crit"]))
+	character.hp = int(data["hp"])
+	character.shield = int(data["shield"])
+	return character
+
 func is_alive() -> bool:
 	return hp > 0
 

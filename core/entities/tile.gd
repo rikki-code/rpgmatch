@@ -10,6 +10,8 @@ var color: int
 ## its palette as usual.
 var visual_color: Variant = null
 var behaviors: Array[TileBehavior] = []
+## How the factory built this tile (kind + arguments): what a save stores instead of the behavior graph.
+var recipe: Dictionary = {}
 
 func _init(p_color: int = 0) -> void:
 	color = p_color
@@ -18,12 +20,14 @@ func _init(p_color: int = 0) -> void:
 ## a match destroys it (see SplashDamageBehavior).
 static func make_normal(p_color: int) -> Tile:
 	var tile := Tile.new(p_color)
+	tile.recipe = {"kind": "normal", "color": p_color}
 	tile.behaviors.append(ColorBehavior.new())
 	tile.behaviors.append(SplashDamageBehavior.new())
 	return tile
 
 static func make_color_bomb(p_color: int, radius: int = 1) -> Tile:
 	var tile := Tile.new(p_color)
+	tile.recipe = {"kind": "color_bomb", "color": p_color, "radius": radius}
 	# BombCore is itself a TileBehavior (reacts to on_damage — a direct
 	# blast hit always chains, no bomb variant would ever want to opt out).
 	var core := BombCore.new(radius, BombCore.Shape.MANHATTAN)
@@ -34,6 +38,7 @@ static func make_color_bomb(p_color: int, radius: int = 1) -> Tile:
 
 static func make_bomb(radius: int = 1) -> Tile:
 	var tile := Tile.new()
+	tile.recipe = {"kind": "bomb", "radius": radius}
 	tile.color = -1
 	tile.visual_color = Color.BLACK
 	var core := BombCore.new(radius, BombCore.Shape.SQUARE)
@@ -45,6 +50,7 @@ static func make_bomb(radius: int = 1) -> Tile:
 
 static func make_arrow_blaster(axis: ArrowBlasterCore.Axis, extra_lines: int = 0) -> Tile:
 	var tile := Tile.new()
+	tile.recipe = {"kind": "arrow_blaster", "axis": axis, "extra_lines": extra_lines}
 	tile.color = -1
 	var core := ArrowBlasterCore.new(axis, extra_lines)
 	tile.behaviors.append(core)
@@ -55,6 +61,7 @@ static func make_arrow_blaster(axis: ArrowBlasterCore.Axis, extra_lines: int = 0
 
 static func make_prism() -> Tile:
 	var tile := Tile.new()
+	tile.recipe = {"kind": "prism"}
 	tile.color = -1
 	var core := PrismCore.new()
 	tile.behaviors.append(core)
@@ -62,6 +69,22 @@ static func make_prism() -> Tile:
 	tile.behaviors.append(SwapSplashTriggerBehavior.new(core))
 	tile.behaviors.append(CombineEffectsBehavior.new(core))
 	return tile
+
+## The inverse of the factories above; JSON hands numbers back as floats.
+static func from_recipe(recipe: Dictionary) -> Tile:
+	match recipe["kind"]:
+		"normal":
+			return make_normal(int(recipe["color"]))
+		"color_bomb":
+			return make_color_bomb(int(recipe["color"]), int(recipe["radius"]))
+		"bomb":
+			return make_bomb(int(recipe["radius"]))
+		"arrow_blaster":
+			return make_arrow_blaster(int(recipe["axis"]) as ArrowBlasterCore.Axis, int(recipe["extra_lines"]))
+		"prism":
+			return make_prism()
+	push_error("Unknown tile recipe: %s" % recipe)
+	return null
 
 func display_name() -> String:
 	return "tile(color=%d)" % color

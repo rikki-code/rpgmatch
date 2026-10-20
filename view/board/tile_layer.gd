@@ -103,6 +103,25 @@ func refresh(instant: bool = false) -> void:
 		elif not _held.has(entity) and node.position.distance_squared_to(target) > 0.0001:
 			_motion.slide(node, target)
 
+# Rebuilds every live node from the freshly loaded pack, keeping where it stands.
+# Only valid while no tween runs on the nodes (BoardView3D.reskin waits for idle).
+func reskin() -> void:
+	for script: Script in _views.keys():
+		var view: EntityView = _views[script]
+		view.dispose()
+		_views[script] = view.get_script().new()
+	for entity: BoardEntity in _nodes.keys():
+		var old: Node3D = _nodes[entity]
+		var node := _view_for(entity).build_node(entity)
+		add_child(node)
+		node.position = old.position
+		node.scale = old.scale
+		node.visible = old.visible
+		_nodes[entity] = node
+		old.queue_free()
+	for entity: BoardEntity in _preview.keys():
+		_highlight(entity, true)
+
 func node_for_cell(cell: GridCell) -> Node3D:
 	return _nodes.get(cell.occupant) if cell.occupant != null else null
 
