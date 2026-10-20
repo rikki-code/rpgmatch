@@ -7,6 +7,7 @@ extends RefCounted
 const CONFIG_PATH := "user://packs.cfg"
 const TILES := &"tiles"
 const BOARD := &"board"
+const AUDIO := &"audio"
 
 const OPTIONS := {
 	TILES: [
@@ -16,6 +17,10 @@ const OPTIONS := {
 	BOARD: [
 		{"id": "dungeon", "name": "Dungeon", "path": "res://view/packs/board_pack/dungeon_pack/"},
 		{"id": "earth", "name": "Meadow", "path": "res://view/packs/board_pack/earth_pack/"},
+	],
+	AUDIO: [
+		{"id": "dungeon", "name": "Dungeon", "path": "res://view/packs/audio_pack/dungeon_pack/"},
+		{"id": "crystal", "name": "Chimes", "path": "res://view/packs/audio_pack/crystal_pack/"},
 	],
 }
 

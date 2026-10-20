@@ -38,6 +38,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func _set_open(open: bool) -> void:
+	if is_node_ready() and open != _dim.visible:
+		Audio.play(&"menu_open" if open else &"menu_close")
 	_dim.visible = open
 	_open_button.visible = not open
 	get_tree().paused = open
@@ -93,6 +95,7 @@ func _build() -> void:
 	_settings_page = MenuKit.page(pages, "Settings")
 	_pack_option(PackCatalog.TILES, "Tiles")
 	_pack_option(PackCatalog.BOARD, "Board")
+	SoundSettings.add_to(_settings_page, func(id: String) -> void: pack_selected.emit(PackCatalog.AUDIO, id))
 	MenuKit.button(_settings_page, "Back", func() -> void: _show_page(_main_page))
 
 ## A pick applies at once: the board swaps models in place, no new level.

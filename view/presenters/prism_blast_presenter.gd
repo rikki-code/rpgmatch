@@ -2,6 +2,15 @@
 class_name PrismBlastPresenter
 extends BlastPresenter
 
+func _charge_cue() -> StringName:
+	return &"prism_charge"
+
+func _launch_cue() -> StringName:
+	return &"prism_launch"
+
+func _blast_cue() -> StringName:
+	return &"prism_blast"
+
 func _launch(blast: EffectBlast, stage: BoardView3D) -> Vfx:
 	var color_index := (blast as EffectPrismBlast).color
 	var color := TileView.TILE_COLORS[color_index % TileView.TILE_COLORS.size()] if color_index >= 0 else Color.WHITE

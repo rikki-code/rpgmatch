@@ -16,6 +16,8 @@ func _ready() -> void:
 	select.start_requested.connect(_on_start)
 	select.continue_requested.connect(_on_continue)
 	select.quit_requested.connect(func() -> void: get_tree().quit())
+	select.sound_pack_selected.connect(_on_sound_pack_selected)
+	Audio.play_music(&"menu")
 
 func _on_start(config: RunConfig) -> void:
 	var profile := GameSession.profile()
@@ -23,6 +25,11 @@ func _on_start(config: RunConfig) -> void:
 	profile.stats_for(config.mode_id).add(ModeStats.RUNS)
 	SaveStore.save_profile(profile)
 	SceneRouter.to_game(config)
+
+func _on_sound_pack_selected(id: String) -> void:
+	PackCatalog.apply({PackCatalog.AUDIO: id})
+	PackPaths.refresh()
+	Audio.reload()
 
 func _on_continue(run: RunSave) -> void:
 	GameSession.resume = run.game

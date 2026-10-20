@@ -12,6 +12,8 @@ var swap_controller: SwapController
 var detonate_controller: DetonateController
 var quest_manager: QuestManager
 var stats_recorder: StatsRecorder
+var board_audio: BoardAudio
+var battle_audio: BattleAudio
 var current_mode: GameMode
 ## Debug builds only: one default-settings mode per ModeCatalog entry, for the editor toolbar's mode dropdown.
 var dev_modes: Array[GameMode] = []
@@ -55,6 +57,7 @@ func _ready() -> void:
 	stats_recorder = StatsRecorder.new(ctx.score_tracker, GameSession.profile().stats_for(launch.mode_id))
 
 	quest_manager = QuestManager.new(board, ctx.resolver, RandomQuestGenerator.new())
+	board_audio = BoardAudio.new(ctx, quest_manager, swap_controller, detonate_controller)
 	if _resume.is_empty():
 		quest_manager.fill_from_generator()
 	else:
@@ -129,7 +132,10 @@ func _ready() -> void:
 	$UILayer.add_child(move_assist)
 	$UILayer.move_child(move_assist, $UILayer/GameMenu.get_index())
 	move_assist.setup(ctx, editor_mode_controller)
-	move_assist.hint_requested.connect(func(move: MoveFinder.Move) -> void: _highlight_move(move.cell_a, move.cell_b))
+	move_assist.hint_requested.connect(func(move: MoveFinder.Move) -> void:
+		Audio.play(&"hint")
+		_highlight_move(move.cell_a, move.cell_b)
+	)
 
 	game_menu = $UILayer/GameMenu
 	if OS.is_debug_build():
@@ -181,6 +187,9 @@ func _switch_definition(index: int) -> void:
 func _apply_pack(category: StringName, id: String) -> void:
 	PackCatalog.apply({category: id})
 	PackPaths.refresh()
+	if category == PackCatalog.AUDIO:
+		Audio.reload()
+		return
 	TileView.load_packs()
 	CellLayer.load_packs()
 	VfxPool.load_packs()
@@ -209,8 +218,10 @@ func _apply_mode(mode: GameMode) -> void:
 	quest_hud.visible = mode.shows_quest_hud()
 	battle_view.visible = mode.shows_battle_view()
 	_refit_camera()
+	Audio.play_music(&"battle" if ctx.battle != null else &"game")
 	if ctx.battle != null:
 		battle_view.setup(ctx)
+		battle_audio = BattleAudio.new(ctx.battle)
 		ctx.battle.ai_move_chosen.connect(_highlight_move)
 	# With the editor open the new mode must not act (e.g. an AI turn) until
 	# the edits are settled.

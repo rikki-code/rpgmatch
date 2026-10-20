@@ -1,5 +1,5 @@
 ## Base directory for the active pack of each category (see view/packs/).
-## Selectable categories (tiles, board) follow PackCatalog; the rest are fixed.
+## Selectable categories (tiles, board, audio) follow PackCatalog; the rest are fixed.
 ## preload() needs a literal path, so consumers use load(PackPaths.X + "file.tscn")
 ## in a static load_packs() instead — see TileView, CellLayer, VfxPool.
 class_name PackPaths
@@ -14,7 +14,9 @@ const UI_PACK := "res://view/packs/ui_pack/standard_pack/"
 
 static var TILES_PACK: String = PackCatalog.selected_path(PackCatalog.TILES)
 static var BOARD_PACK: String = PackCatalog.selected_path(PackCatalog.BOARD)
+static var AUDIO_PACK: String = PackCatalog.selected_path(PackCatalog.AUDIO)
 
 static func refresh() -> void:
 	TILES_PACK = PackCatalog.selected_path(PackCatalog.TILES)
 	BOARD_PACK = PackCatalog.selected_path(PackCatalog.BOARD)
+	AUDIO_PACK = PackCatalog.selected_path(PackCatalog.AUDIO)

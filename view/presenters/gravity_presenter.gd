@@ -4,4 +4,6 @@ extends EffectPresenter
 
 func play(effect: Effect, stage: BoardView3D) -> void:
 	for move: TileMove in (effect as EffectGravityColumn).moves:
-		stage.tiles.move(move.entity, move.to)
+		var tween := stage.tiles.move(move.entity, move.to)
+		if tween != null:
+			tween.finished.connect(Audio.play.bind(&"tile_land"))

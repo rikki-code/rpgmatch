@@ -71,19 +71,19 @@ static func make_prism() -> Tile:
 	return tile
 
 ## The inverse of the factories above; JSON hands numbers back as floats.
-static func from_recipe(recipe: Dictionary) -> Tile:
-	match recipe["kind"]:
+static func from_recipe(data: Dictionary) -> Tile:
+	match data["kind"]:
 		"normal":
-			return make_normal(int(recipe["color"]))
+			return make_normal(int(data["color"]))
 		"color_bomb":
-			return make_color_bomb(int(recipe["color"]), int(recipe["radius"]))
+			return make_color_bomb(int(data["color"]), int(data["radius"]))
 		"bomb":
-			return make_bomb(int(recipe["radius"]))
+			return make_bomb(int(data["radius"]))
 		"arrow_blaster":
-			return make_arrow_blaster(int(recipe["axis"]) as ArrowBlasterCore.Axis, int(recipe["extra_lines"]))
+			return make_arrow_blaster(int(data["axis"]) as ArrowBlasterCore.Axis, int(data["extra_lines"]))
 		"prism":
 			return make_prism()
-	push_error("Unknown tile recipe: %s" % recipe)
+	push_error("Unknown tile recipe: %s" % data)
 	return null
 
 func display_name() -> String:

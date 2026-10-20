@@ -46,6 +46,7 @@ func _play_generation(effects: Array, presenters: Dictionary, stage: BoardView3D
 		await latch.done
 
 func _run(presenter: EffectPresenter, effect: Effect, stage: BoardView3D, latch: Latch) -> void:
+	Audio.play(presenter.cue_for(effect))
 	await presenter.play(effect, stage)
 	latch.finish()
 

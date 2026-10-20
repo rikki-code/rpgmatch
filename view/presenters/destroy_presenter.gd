@@ -2,6 +2,9 @@
 class_name DestroyPresenter
 extends EffectPresenter
 
+func cue_for(_effect: Effect) -> StringName:
+	return &"destroy"
+
 func play(effect: Effect, stage: BoardView3D) -> void:
 	var entity: BoardEntity = null
 	if effect is EffectDestroyTile:

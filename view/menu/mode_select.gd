@@ -6,6 +6,7 @@ extends Control
 signal start_requested(config: RunConfig)
 signal continue_requested(run: RunSave)
 signal quit_requested
+signal sound_pack_selected(id: String)
 
 const CONTENT_WIDTH := 760.0
 
@@ -56,6 +57,7 @@ func setup(definitions: Array[ModeDefinition], profile: ProfileData, runs: Dicti
 	_select_page.add_child(MenuKit.label("rpgmatch", 72))
 	for definition in definitions:
 		MenuKit.button(_select_page, definition.title(), _on_play.bind(definition))
+	MenuKit.button(_select_page, "Settings", _show_settings)
 	if can_quit:
 		MenuKit.button(_select_page, "Quit", func() -> void: quit_requested.emit())
 	_show_select()
@@ -75,6 +77,17 @@ func _show_select() -> void:
 func _clear(parent: Control) -> void:
 	for child in parent.get_children():
 		child.queue_free()
+
+func _show_settings() -> void:
+	_select_page.visible = false
+	_setup_holder.visible = true
+	var page := MenuKit.page(_setup_holder, "Settings")
+	SoundSettings.add_to(page, func(id: String) -> void: sound_pack_selected.emit(id))
+	var padded := MarginContainer.new()
+	padded.add_theme_constant_override("margin_bottom", 28)
+	_footer.add_child(padded)
+	var back := MenuKit.button(padded, "Back", _show_select)
+	back.custom_minimum_size.x = CONTENT_WIDTH
 
 func _show_setup(definition: ModeDefinition) -> void:
 	_select_page.visible = false

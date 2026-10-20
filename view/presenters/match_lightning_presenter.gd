@@ -2,6 +2,9 @@
 class_name MatchLightningPresenter
 extends EffectPresenter
 
+func cue_for(_effect: Effect) -> StringName:
+	return &"match"
+
 func play(effect: Effect, stage: BoardView3D) -> void:
 	var cells: Array[GridCell] = (effect as EffectMatchLightning).cells
 	var in_group: Dictionary = {}  # Vector2i -> true

@@ -2,6 +2,15 @@
 class_name ArrowBlastPresenter
 extends BlastPresenter
 
+func _charge_cue() -> StringName:
+	return &"arrow_charge"
+
+func _launch_cue() -> StringName:
+	return &"arrow_launch"
+
+func _blast_cue() -> StringName:
+	return &"arrow_blast"
+
 func _launch(blast: EffectBlast, stage: BoardView3D) -> Vfx:
 	if blast.cells.is_empty():
 		return null

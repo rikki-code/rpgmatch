@@ -84,6 +84,7 @@ func _begin_drag(screen_pos: Vector2) -> void:
 	_companion_cell = null
 	_companion_tile = null
 	board_view.tiles.set_match_preview([])
+	Audio.play(&"drag_pick")
 	board_view.tiles.hold(_drag_tile)
 	_kill_spring(_drag_tile)
 	var node := board_view.tiles.node_for_tile(_drag_tile)
@@ -216,6 +217,7 @@ func _end_drag() -> void:
 		_last_tap_cell = null
 		swap_controller.try_swap(drag_cell, swap_neighbor)
 	else:
+		Audio.play(&"drag_drop")
 		_last_tap_cell = drag_cell
 		_last_tap_msec = Time.get_ticks_msec()
 

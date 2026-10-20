@@ -76,6 +76,9 @@ description: >
   `.claude/skills/match3-world-editor/SKILL.md`.
   `view/battle/` (character cards), `view/menu/` (pause menu), `view/hud/` (score, quests, move
   hint/shuffle) — UI built in code; reads state, emits picks/signals.
+- `view/audio/` — `Audio` autoload (the only sound entry point), `BoardAudio`/`BattleAudio` event hooks,
+  sound packs in `view/packs/audio_pack/` — see `.claude/skills/match3-audio/SKILL.md`. A new effect
+  presenter/battle action declares its cue there.
 - `game/` — `game_root` wires everything (params → generator → graph → mode → turn manager → view);
   `game_session` holds the only state that survives a scene reload.
 - Build/CI — `ci/`, `.github/workflows/export.yml`; see `.claude/skills/ci-export/SKILL.md`.

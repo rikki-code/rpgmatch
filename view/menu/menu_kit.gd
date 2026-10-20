@@ -66,6 +66,15 @@ static func spin(parent: Control, spec: SettingSpec, value: int) -> SpinBox:
 	parent.add_child(row(spec.label, box))
 	return box
 
+static func slider(value: float) -> HSlider:
+	var result := HSlider.new()
+	result.min_value = 0.0
+	result.max_value = 1.0
+	result.step = 0.05
+	result.value = value
+	result.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	return result
+
 ## The dropdown is its own popup window, outside the panel theme.
 static func option(items: Array[String], selected: int) -> OptionButton:
 	var result := OptionButton.new()

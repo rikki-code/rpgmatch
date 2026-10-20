@@ -376,6 +376,17 @@ The model resolves a whole wave synchronously; the view plays it back afterwards
   centers it via `h_offset`/`v_offset`. Refit on resize and mode switch. A new HUD element must
   report its rect.
 
+## Audio
+
+- `Audio` (autoload, `view/audio/audio_director.gd`) is the only sound entry point; sounds are cue names
+  looked up in the active audio pack's `AudioBank` (`view/packs/audio_pack/`), and a name the pack lacks is
+  silent. Core never touches audio: effect sounds come from `EffectPresenter.cue_for` (played by
+  `WavePlayer` with the animation) or from the presenter itself when timed inside it (landings, blast
+  stages); board/HUD and battle events go through `BoardAudio`/`BattleAudio`; buttons and sliders are
+  wired globally by the autoload. Volumes (Master/Music/Effects) live in `user://audio.cfg`.
+- The packs are synthesized by `tools/gen_audio.py` (no samples, CC0), imported as ADPCM wav.
+  Details and the "where does a new sound go" table: `.claude/skills/match3-audio/SKILL.md`.
+
 ## Build and export
 
 - `export_presets.cfg`: macos-universal, linux-x86_64/arm64, windows-x86_64/arm64, web.
@@ -391,3 +402,4 @@ a `view`/art concern, not core's.
 ## Adding a new mechanic
 
 See `.claude/skills/match3-add-mechanic/SKILL.md` — a short "new X → new file in Y" cheat sheet.
+Every new effect presenter / `BattleAction` also needs its sound cue name (`match3-audio`).

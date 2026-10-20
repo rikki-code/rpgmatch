@@ -1,0 +1,318 @@
+[gd_resource type="Resource" script_class="AudioBank" format=3]
+
+[ext_resource type="Script" path="res://view/audio/audio_bank.gd" id="bank"]
+[ext_resource type="Script" path="res://view/audio/sound_cue.gd" id="cue"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/ui_click.wav" id="sfx/ui_click.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/ui_hover.wav" id="sfx/ui_hover.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/menu_open.wav" id="sfx/menu_open.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/menu_close.wav" id="sfx/menu_close.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/swap.wav" id="sfx/swap.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/swap_reject.wav" id="sfx/swap_reject.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/drag_pick.wav" id="sfx/drag_pick.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/drag_drop.wav" id="sfx/drag_drop.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/tile_land_1.wav" id="sfx/tile_land_1.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/tile_land_2.wav" id="sfx/tile_land_2.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/tile_land_3.wav" id="sfx/tile_land_3.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/tile_land_4.wav" id="sfx/tile_land_4.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/tile_pop.wav" id="sfx/tile_pop.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/destroy_1.wav" id="sfx/destroy_1.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/destroy_2.wav" id="sfx/destroy_2.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/destroy_3.wav" id="sfx/destroy_3.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/destroy_4.wav" id="sfx/destroy_4.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/destroy_5.wav" id="sfx/destroy_5.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/destroy_6.wav" id="sfx/destroy_6.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/destroy_7.wav" id="sfx/destroy_7.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/destroy_8.wav" id="sfx/destroy_8.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/match.wav" id="sfx/match.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/combo.wav" id="sfx/combo.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/fuse.wav" id="sfx/fuse.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/arrow_charge.wav" id="sfx/arrow_charge.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/prism_charge.wav" id="sfx/prism_charge.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/bomb_blast.wav" id="sfx/bomb_blast.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/arrow_launch.wav" id="sfx/arrow_launch.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/arrow_blast.wav" id="sfx/arrow_blast.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/prism_launch.wav" id="sfx/prism_launch.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/prism_blast.wav" id="sfx/prism_blast.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/combine.wav" id="sfx/combine.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/detonate.wav" id="sfx/detonate.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/shuffle.wav" id="sfx/shuffle.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/hint.wav" id="sfx/hint.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/quest_tick.wav" id="sfx/quest_tick.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/quest_done.wav" id="sfx/quest_done.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/turn_start.wav" id="sfx/turn_start.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/target_select.wav" id="sfx/target_select.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/action_attack.wav" id="sfx/action_attack.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/action_defend.wav" id="sfx/action_defend.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/hit.wav" id="sfx/hit.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/crit.wav" id="sfx/crit.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/shield.wav" id="sfx/shield.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/death.wav" id="sfx/death.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/victory.wav" id="sfx/victory.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/sfx/defeat.wav" id="sfx/defeat.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/music/menu.wav" id="music/menu.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/music/game.wav" id="music/game.wav"]
+[ext_resource type="AudioStream" path="res://view/packs/audio_pack/dungeon_pack/music/battle.wav" id="music/battle.wav"]
+
+[sub_resource type="Resource" id="cue_ui_click"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/ui_click.wav")])
+volume_db = -6.0
+pitch_jitter = 0.02
+cooldown_msec = 20
+
+[sub_resource type="Resource" id="cue_ui_hover"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/ui_hover.wav")])
+volume_db = -16.0
+pitch_jitter = 0.03
+cooldown_msec = 60
+
+[sub_resource type="Resource" id="cue_menu_open"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/menu_open.wav")])
+volume_db = -8.0
+pitch_jitter = 0.0
+cooldown_msec = 80
+
+[sub_resource type="Resource" id="cue_menu_close"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/menu_close.wav")])
+volume_db = -8.0
+pitch_jitter = 0.0
+cooldown_msec = 80
+
+[sub_resource type="Resource" id="cue_swap"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/swap.wav")])
+volume_db = -6.0
+pitch_jitter = 0.04
+cooldown_msec = 40
+
+[sub_resource type="Resource" id="cue_swap_reject"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/swap_reject.wav")])
+volume_db = -6.0
+pitch_jitter = 0.02
+cooldown_msec = 120
+
+[sub_resource type="Resource" id="cue_drag_pick"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/drag_pick.wav")])
+volume_db = -12.0
+pitch_jitter = 0.03
+cooldown_msec = 60
+
+[sub_resource type="Resource" id="cue_drag_drop"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/drag_drop.wav")])
+volume_db = -12.0
+pitch_jitter = 0.03
+cooldown_msec = 60
+
+[sub_resource type="Resource" id="cue_tile_land"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/tile_land_1.wav"), ExtResource("sfx/tile_land_2.wav"), ExtResource("sfx/tile_land_3.wav"), ExtResource("sfx/tile_land_4.wav")])
+volume_db = -14.0
+pitch_jitter = 0.04
+cooldown_msec = 35
+
+[sub_resource type="Resource" id="cue_tile_pop"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/tile_pop.wav")])
+volume_db = -9.0
+pitch_jitter = 0.04
+cooldown_msec = 60
+
+[sub_resource type="Resource" id="cue_destroy"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/destroy_1.wav"), ExtResource("sfx/destroy_2.wav"), ExtResource("sfx/destroy_3.wav"), ExtResource("sfx/destroy_4.wav"), ExtResource("sfx/destroy_5.wav"), ExtResource("sfx/destroy_6.wav"), ExtResource("sfx/destroy_7.wav"), ExtResource("sfx/destroy_8.wav")])
+volume_db = -9.0
+pitch_jitter = 0.0
+cooldown_msec = 22
+
+[sub_resource type="Resource" id="cue_match"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/match.wav")])
+volume_db = -9.0
+pitch_jitter = 0.03
+cooldown_msec = 70
+
+[sub_resource type="Resource" id="cue_combo"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/combo.wav")])
+volume_db = -6.0
+pitch_jitter = 0.0
+cooldown_msec = 120
+
+[sub_resource type="Resource" id="cue_fuse"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/fuse.wav")])
+volume_db = -8.0
+pitch_jitter = 0.02
+cooldown_msec = 120
+
+[sub_resource type="Resource" id="cue_arrow_charge"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/arrow_charge.wav")])
+volume_db = -9.0
+pitch_jitter = 0.02
+cooldown_msec = 120
+
+[sub_resource type="Resource" id="cue_prism_charge"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/prism_charge.wav")])
+volume_db = -8.0
+pitch_jitter = 0.0
+cooldown_msec = 150
+
+[sub_resource type="Resource" id="cue_bomb_blast"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/bomb_blast.wav")])
+volume_db = -2.0
+pitch_jitter = 0.03
+cooldown_msec = 80
+
+[sub_resource type="Resource" id="cue_arrow_launch"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/arrow_launch.wav")])
+volume_db = -7.0
+pitch_jitter = 0.04
+cooldown_msec = 40
+
+[sub_resource type="Resource" id="cue_arrow_blast"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/arrow_blast.wav")])
+volume_db = -4.0
+pitch_jitter = 0.04
+cooldown_msec = 60
+
+[sub_resource type="Resource" id="cue_prism_launch"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/prism_launch.wav")])
+volume_db = -9.0
+pitch_jitter = 0.02
+cooldown_msec = 80
+
+[sub_resource type="Resource" id="cue_prism_blast"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/prism_blast.wav")])
+volume_db = -3.0
+pitch_jitter = 0.02
+cooldown_msec = 80
+
+[sub_resource type="Resource" id="cue_combine"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/combine.wav")])
+volume_db = -4.0
+pitch_jitter = 0.02
+cooldown_msec = 100
+
+[sub_resource type="Resource" id="cue_detonate"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/detonate.wav")])
+volume_db = -6.0
+pitch_jitter = 0.03
+cooldown_msec = 100
+
+[sub_resource type="Resource" id="cue_shuffle"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/shuffle.wav")])
+volume_db = -8.0
+pitch_jitter = 0.0
+cooldown_msec = 200
+
+[sub_resource type="Resource" id="cue_hint"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/hint.wav")])
+volume_db = -10.0
+pitch_jitter = 0.0
+cooldown_msec = 300
+
+[sub_resource type="Resource" id="cue_quest_tick"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/quest_tick.wav")])
+volume_db = -14.0
+pitch_jitter = 0.02
+cooldown_msec = 80
+
+[sub_resource type="Resource" id="cue_quest_done"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/quest_done.wav")])
+volume_db = -5.0
+pitch_jitter = 0.0
+cooldown_msec = 300
+
+[sub_resource type="Resource" id="cue_turn_start"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/turn_start.wav")])
+volume_db = -8.0
+pitch_jitter = 0.0
+cooldown_msec = 300
+
+[sub_resource type="Resource" id="cue_target_select"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/target_select.wav")])
+volume_db = -9.0
+pitch_jitter = 0.03
+cooldown_msec = 60
+
+[sub_resource type="Resource" id="cue_action_attack"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/action_attack.wav")])
+volume_db = -5.0
+pitch_jitter = 0.03
+cooldown_msec = 100
+
+[sub_resource type="Resource" id="cue_action_defend"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/action_defend.wav")])
+volume_db = -6.0
+pitch_jitter = 0.02
+cooldown_msec = 100
+
+[sub_resource type="Resource" id="cue_hit"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/hit.wav")])
+volume_db = -4.0
+pitch_jitter = 0.05
+cooldown_msec = 80
+
+[sub_resource type="Resource" id="cue_crit"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/crit.wav")])
+volume_db = -2.0
+pitch_jitter = 0.03
+cooldown_msec = 120
+
+[sub_resource type="Resource" id="cue_shield"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/shield.wav")])
+volume_db = -7.0
+pitch_jitter = 0.02
+cooldown_msec = 120
+
+[sub_resource type="Resource" id="cue_death"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/death.wav")])
+volume_db = -3.0
+pitch_jitter = 0.02
+cooldown_msec = 300
+
+[sub_resource type="Resource" id="cue_victory"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/victory.wav")])
+volume_db = -3.0
+pitch_jitter = 0.0
+cooldown_msec = 1000
+
+[sub_resource type="Resource" id="cue_defeat"]
+script = ExtResource("cue")
+streams = Array[AudioStream]([ExtResource("sfx/defeat.wav")])
+volume_db = -3.0
+pitch_jitter = 0.0
+cooldown_msec = 1000
+
+[resource]
+script = ExtResource("bank")
+cues = {"ui_click": SubResource("cue_ui_click"), "ui_hover": SubResource("cue_ui_hover"), "menu_open": SubResource("cue_menu_open"), "menu_close": SubResource("cue_menu_close"), "swap": SubResource("cue_swap"), "swap_reject": SubResource("cue_swap_reject"), "drag_pick": SubResource("cue_drag_pick"), "drag_drop": SubResource("cue_drag_drop"), "tile_land": SubResource("cue_tile_land"), "tile_pop": SubResource("cue_tile_pop"), "destroy": SubResource("cue_destroy"), "match": SubResource("cue_match"), "combo": SubResource("cue_combo"), "fuse": SubResource("cue_fuse"), "arrow_charge": SubResource("cue_arrow_charge"), "prism_charge": SubResource("cue_prism_charge"), "bomb_blast": SubResource("cue_bomb_blast"), "arrow_launch": SubResource("cue_arrow_launch"), "arrow_blast": SubResource("cue_arrow_blast"), "prism_launch": SubResource("cue_prism_launch"), "prism_blast": SubResource("cue_prism_blast"), "combine": SubResource("cue_combine"), "detonate": SubResource("cue_detonate"), "shuffle": SubResource("cue_shuffle"), "hint": SubResource("cue_hint"), "quest_tick": SubResource("cue_quest_tick"), "quest_done": SubResource("cue_quest_done"), "turn_start": SubResource("cue_turn_start"), "target_select": SubResource("cue_target_select"), "action_attack": SubResource("cue_action_attack"), "action_defend": SubResource("cue_action_defend"), "hit": SubResource("cue_hit"), "crit": SubResource("cue_crit"), "shield": SubResource("cue_shield"), "death": SubResource("cue_death"), "victory": SubResource("cue_victory"), "defeat": SubResource("cue_defeat")}
+music = {"menu": ExtResource("music/menu.wav"), "game": ExtResource("music/game.wav"), "battle": ExtResource("music/battle.wav")}
