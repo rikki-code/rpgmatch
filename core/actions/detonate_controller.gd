@@ -15,10 +15,15 @@ var ctx: TurnContext
 func _init(p_ctx: TurnContext) -> void:
 	ctx = p_ctx
 
+# Closes input at once, like SwapController.try_swap.
 func try_detonate(cell: GridCell) -> bool:
 	if not ctx.awaiting_player_input:
 		return false
-	return await perform_detonate(cell)
+	ctx.awaiting_player_input = false
+	var done := await perform_detonate(cell)
+	if not done:
+		ctx.awaiting_player_input = true
+	return done
 
 ## try_detonate minus the human-input gate — used by an AI character's move.
 func perform_detonate(cell: GridCell) -> bool:

@@ -146,6 +146,10 @@ func _ready() -> void:
 	game_menu.exit_requested.connect(SceneRouter.to_menu)
 
 	_apply_mode(start_mode)
+	if BenchRunner.mode() != &"":
+		var bench := BenchRunner.new()
+		add_child(bench)
+		bench.setup(ctx)
 
 ## Rebuilds the TurnManager from a different mode, reusing the same board/
 ## resolver/score. Refused mid-turn (same gate the world editor uses) unless
@@ -226,7 +230,7 @@ func _apply_mode(mode: GameMode) -> void:
 	# With the editor open the new mode must not act (e.g. an AI turn) until
 	# the edits are settled.
 	if not editor_mode_controller.active:
-		turn_manager.start()
+		_start_turn_manager()
 	elif not editor_mode_controller.settled.is_connected(_start_turn_manager):
 		editor_mode_controller.settled.connect(_start_turn_manager, CONNECT_ONE_SHOT)
 
@@ -255,8 +259,13 @@ func _save_stats() -> void:
 func _exit_tree() -> void:
 	_save_stats()
 
+# Waits for the opening fill to land: input is open from the first turn, and a move made
+# under tiles that are still falling in shows holes.
 func _start_turn_manager() -> void:
-	turn_manager.start()
+	var manager := turn_manager
+	await board_view.await_settled()
+	if manager == turn_manager:
+		manager.start()
 
 ## Highlights a move: what an AI is about to play, or the idle-player hint.
 func _highlight_move(cell_a: GridCell, cell_b: GridCell) -> void:

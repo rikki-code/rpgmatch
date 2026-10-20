@@ -3,6 +3,10 @@ class_name MenuRoot
 extends Control
 
 func _ready() -> void:
+	var bench := BenchRunner.mode()
+	if bench != &"":
+		SceneRouter.to_game.call_deferred(RunConfig.defaults(ModeCatalog.find(&"battle" if bench == &"battle" else ModeCatalog.INFINITE)))
+		return
 	_fit()
 	get_tree().root.size_changed.connect(_fit)
 	var select := ModeSelect.new()

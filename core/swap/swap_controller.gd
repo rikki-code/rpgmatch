@@ -19,10 +19,16 @@ var ctx: TurnContext
 func _init(p_ctx: TurnContext) -> void:
 	ctx = p_ctx
 
+# Input closes at once: it stays open until notify_phase_done, so a second move during
+# the settle wait would resolve concurrently and advance the turn twice.
 func try_swap(cell_a: GridCell, cell_b: GridCell) -> bool:
 	if not ctx.awaiting_player_input:
 		return false
-	return await perform_swap(cell_a, cell_b)
+	ctx.awaiting_player_input = false
+	var done := await perform_swap(cell_a, cell_b)
+	if not done:
+		ctx.awaiting_player_input = true
+	return done
 
 ## try_swap minus the human-input gate — an AI character's move (see
 ## PhaseCharacterInput) goes through here while human input stays locked.
