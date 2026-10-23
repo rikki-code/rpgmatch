@@ -4,9 +4,12 @@ class_name ProfileData
 extends RefCounted
 
 const VERSION := 1
+const DEFAULT_PLAYER_NAME := "Player"
 
 var _stats: Dictionary = {}  # StringName -> ModeStats
 var _settings: Dictionary = {}  # StringName -> Dictionary
+## Shown to the opponent in online matches.
+var player_name := DEFAULT_PLAYER_NAME
 
 func stats_for(mode_id: StringName) -> ModeStats:
 	if not _stats.has(mode_id):
@@ -23,10 +26,13 @@ func to_dict() -> Dictionary:
 	var stats := {}
 	for mode_id: StringName in _stats:
 		stats[mode_id] = _stats[mode_id].to_dict()
-	return {"version": VERSION, "stats": stats, "settings": _settings}
+	return {"version": VERSION, "stats": stats, "settings": _settings, "player_name": player_name}
 
 static func from_dict(data: Dictionary) -> ProfileData:
 	var profile := ProfileData.new()
+	profile.player_name = str(data.get("player_name", "")).strip_edges()
+	if profile.player_name == "":
+		profile.player_name = DEFAULT_PLAYER_NAME
 	var stats: Dictionary = data.get("stats", {})
 	for mode_id in stats:
 		profile._stats[StringName(mode_id)] = ModeStats.from_dict(stats[mode_id])

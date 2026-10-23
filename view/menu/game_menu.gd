@@ -15,6 +15,7 @@ var _open_button: Button
 var _dim: ColorRect
 var _main_page: VBoxContainer
 var _settings_page: VBoxContainer
+var _restart_button: Button
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -25,6 +26,10 @@ func _ready() -> void:
 
 func hud_rects() -> Array[Rect2]:
 	return [_open_button.get_global_rect()]
+
+## An online match cannot be restarted by one side.
+func set_restart_enabled(enabled: bool) -> void:
+	_restart_button.visible = enabled
 
 func is_open() -> bool:
 	return _dim.visible
@@ -89,7 +94,7 @@ func _build() -> void:
 	_main_page = MenuKit.page(pages, "Menu")
 	MenuKit.button(_main_page, "Resume", func() -> void: _set_open(false))
 	MenuKit.button(_main_page, "Settings", func() -> void: _show_page(_settings_page))
-	MenuKit.button(_main_page, "Restart", func() -> void: restart_requested.emit())
+	_restart_button = MenuKit.button(_main_page, "Restart", func() -> void: restart_requested.emit())
 	MenuKit.button(_main_page, "Main menu", func() -> void: exit_requested.emit())
 
 	_settings_page = MenuKit.page(pages, "Settings")

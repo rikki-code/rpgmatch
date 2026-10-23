@@ -306,7 +306,9 @@ The model resolves a whole wave synchronously; the view plays it back afterwards
   action change, so the card shows "Action → target" for every character. A human click may pick any
   living card (friendly fire, shielding an enemy); `HumanController` keeps it while the action accepts
   it, else falls back to `best_target`.
-- Controllers: `choose_action`, `choose_move`, `choose_target`. `AiController.skill`
+- Controllers: `choose_action`, `choose_move`, `choose_target`; `take_turn(ctx)` plays the whole board move of
+  a non-human (default = the bot, `RemoteController` = the online opponent, see `match3-online`);
+  `is_human()` = local input, `is_player()` = a person (here or remote), `is_remote()`. `AiController.skill`
   (`0.3 + 0.06/level`, max `0.95`) is the probability of each smart call (best move, most urgent
   action, best target); otherwise a random move, the default action, or a non-best target.
 - Combat power = `BattleContext.power_of(actor, score_tracker)`: match points × `power_multiplier`

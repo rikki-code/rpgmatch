@@ -21,14 +21,24 @@ func _ready() -> void:
 	select.continue_requested.connect(_on_continue)
 	select.quit_requested.connect(func() -> void: get_tree().quit())
 	select.sound_pack_selected.connect(_on_sound_pack_selected)
+	select.player_name_changed.connect(_on_player_name_changed)
 	Audio.play_music(&"menu")
 
 func _on_start(config: RunConfig) -> void:
+	if config.mode_id == OnlineDefinition.ID:
+		SceneRouter.to_game(config)
+		return
 	var profile := GameSession.profile()
 	profile.remember_settings(config.mode_id, config.settings)
 	profile.stats_for(config.mode_id).add(ModeStats.RUNS)
 	SaveStore.save_profile(profile)
 	SceneRouter.to_game(config)
+
+func _on_player_name_changed(player_name: String) -> void:
+	var profile := GameSession.profile()
+	if profile.player_name != player_name:
+		profile.player_name = player_name
+		SaveStore.save_profile(profile)
 
 func _on_sound_pack_selected(id: String) -> void:
 	PackCatalog.apply({PackCatalog.AUDIO: id})

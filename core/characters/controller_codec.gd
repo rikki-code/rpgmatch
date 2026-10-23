@@ -8,5 +8,7 @@ static func decode(data: Dictionary) -> CharacterController:
 			return HumanController.new()
 		"ai":
 			return AiController.new(float(data["skill"]))
+		"remote":
+			return RemoteController.new()
 	push_error("Unknown controller: %s" % data)
 	return CharacterController.new()

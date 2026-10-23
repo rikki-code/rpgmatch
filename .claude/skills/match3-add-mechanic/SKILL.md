@@ -27,7 +27,7 @@ existing hook.
 | New game mode | configure an existing `GameMode` if phases match; subclass `GameMode` otherwise | `core/modes/` — see `.claude/skills/match3-game-shell/SKILL.md` |
 | New battle action (heal, ability) | `BattleAction` subclass + entry in `BattleContext.actions` | `core/characters/actions/` — see `.claude/skills/match3-battle/SKILL.md` |
 | New battle unit | one `UnitType.new(...)` in a catalog, cost calibrated by duels | `core/characters/unit_type.gd` |
-| New character controller (network, scripted) | `CharacterController` subclass | `core/characters/` |
+| New character controller (network, scripted) | `CharacterController` subclass (`take_turn` for a whole custom turn) + `ControllerCodec` line | `core/characters/` |
 | Level-scaled value | `LevelCurve` call, never inline math | `core/progression/` |
 | Special swap rule (e.g. allow non-adjacent swap for a special tile) | extend/replace `SwapController`, don't hardcode into `MatchFinder` | `core/swap/` |
 | Direct player action besides swap (click-to-activate, shuffle) | new controller modeled on `DetonateController`/`ShuffleController` (`try_*` gated, `perform_*` for AI) + reuse `is_manually_triggerable`/`manual_trigger` (generic, not bomb-specific), not `on_damage`/`on_splash_damage` | `core/actions/` |

@@ -51,9 +51,16 @@ func _process(delta: float) -> void:
 		var move := MoveFinder.best_move(_ctx.board)
 		if _ctx.battle != null:
 			var advisor := AiController.new(AiController.skill_for_level(_ctx.battle.level))
-			move = advisor.choose_move(_ctx.board, _ctx.battle, _ctx.board.rng)
+			move = advisor.choose_move(_ctx.board, _ctx.battle, _scratch_rng())
 		if move != null:
 			hint_requested.emit(move)
+
+## A copy of the board rng: a hint only one player gets (online) must not move the shared sequence.
+func _scratch_rng() -> RandomNumberGenerator:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = _ctx.board.rng.seed
+	rng.state = _ctx.board.rng.state
+	return rng
 
 func _restart_wait() -> void:
 	_idle_seconds = 0.0

@@ -14,6 +14,7 @@ var quest_manager: QuestManager
 var stats_recorder: StatsRecorder
 var board_audio: BoardAudio
 var battle_audio: BattleAudio
+var online_sync: OnlineSync
 var current_mode: GameMode
 ## Debug builds only: one default-settings mode per ModeCatalog entry, for the editor toolbar's mode dropdown.
 var dev_modes: Array[GameMode] = []
@@ -146,10 +147,23 @@ func _ready() -> void:
 	game_menu.exit_requested.connect(SceneRouter.to_menu)
 
 	_apply_mode(start_mode)
+	if ctx.battle != null and ctx.battle.is_online():
+		_start_online()
 	if BenchRunner.mode() != &"":
 		var bench := BenchRunner.new()
 		add_child(bench)
 		bench.setup(ctx)
+
+func _start_online() -> void:
+	online_sync = OnlineSync.new()
+	online_sync.setup(ctx)
+	online_sync.outgoing.connect(Net.send_game)
+	online_sync.match_lost.connect(battle_view.show_notice)
+	Net.game_message.connect(online_sync.receive)
+	Net.opponent_left.connect(online_sync.opponent_left)
+	for message in Net.attach_game():
+		online_sync.receive(message)
+	game_menu.set_restart_enabled(false)
 
 ## Rebuilds the TurnManager from a different mode, reusing the same board/
 ## resolver/score. Refused mid-turn (same gate the world editor uses) unless
@@ -242,7 +256,7 @@ func _restore_battle() -> void:
 	_resume = {}
 
 func _save_run() -> void:
-	if editor_mode_controller.active or (ctx.battle != null and ctx.battle.is_battle_over()):
+	if editor_mode_controller.active or (ctx.battle != null and (ctx.battle.is_battle_over() or ctx.battle.is_online())):
 		return
 	SaveStore.save_run(RunSave.new(GameSession.launch, GameSnapshot.capture(ctx, quest_manager)))
 
@@ -258,6 +272,10 @@ func _save_stats() -> void:
 
 func _exit_tree() -> void:
 	_save_stats()
+	if online_sync != null:
+		Net.game_message.disconnect(online_sync.receive)
+		Net.opponent_left.disconnect(online_sync.opponent_left)
+		Net.leave()
 
 # Waits for the opening fill to land: input is open from the first turn, and a move made
 # under tiles that are still falling in shows holes.

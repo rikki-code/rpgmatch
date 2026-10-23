@@ -12,11 +12,16 @@ static var _all: Array[ModeDefinition] = [
 	PvpDefinition.new(),
 ]
 
+## Reached from the Multiplayer lobby, not from the mode list.
+static var _hidden: Array[ModeDefinition] = [
+	OnlineDefinition.new(),
+]
+
 static func all() -> Array[ModeDefinition]:
 	return _all
 
 static func find(id: StringName) -> ModeDefinition:
-	for definition in _all:
+	for definition in _all + _hidden:
 		if definition.id() == id:
 			return definition
 	return null

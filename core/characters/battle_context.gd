@@ -67,9 +67,12 @@ static func from_dict(data: Dictionary, rng: RandomNumberGenerator) -> BattleCon
 	battle.queue.restore(data["queue"], battle.all_characters())
 	return battle
 
-## Humans on both sides (PvP): no AI opponent to beat, so no progression.
+## People on both sides (PvP, here or online): no AI opponent to beat, so no progression.
 func is_versus() -> bool:
-	return allies.any(func(c: Character) -> bool: return c.controller.is_human()) and enemies.any(func(c: Character) -> bool: return c.controller.is_human())
+	return allies.any(func(c: Character) -> bool: return c.controller.is_player()) and enemies.any(func(c: Character) -> bool: return c.controller.is_player())
+
+func is_online() -> bool:
+	return all_characters().any(func(c: Character) -> bool: return c.controller.is_remote())
 
 func all_characters() -> Array[Character]:
 	var result: Array[Character] = []

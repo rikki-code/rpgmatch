@@ -79,6 +79,8 @@ description: >
 - `view/audio/` — `Audio` autoload (the only sound entry point), `BoardAudio`/`BattleAudio` event hooks,
   sound packs in `view/packs/audio_pack/` — see `.claude/skills/match3-audio/SKILL.md`. A new effect
   presenter/battle action declares its cue there.
+- `game/net/` — online PvP transport and sync (`Net` autoload, `MqttClient`, `OnlineSync`); core never imports it,
+  `RemoteController` is fed through `OnlineSync`. See `.claude/skills/match3-online/SKILL.md`.
 - `game/` — `game_root` wires everything (params → generator → graph → mode → turn manager → view);
   `game_session` holds the only state that survives a scene reload.
 - Build/CI — `ci/`, `.github/workflows/export.yml`; see `.claude/skills/ci-export/SKILL.md`.

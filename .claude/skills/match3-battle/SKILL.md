@@ -12,7 +12,8 @@ description: >
 - One shared board. Each character acts once per round in initiative order: action → board move →
   the move's points become the action's power (`PhaseResolveCombatAction`).
 - `Character`: side + `CharacterController` (composition). `HumanController` waits for input;
-  `AiController` decides with `skill`.
+  `AiController` decides with `skill`; `RemoteController` (online opponent) replays what the other client sent.
+  `CharacterController.take_turn(ctx)` is a non-human's whole board move (default = the bot).
 - `BattleContext` owns rosters, the queue, `actions`, `pending_action`, `pending_target`, signals.
   It picks `pending_target` through the active controller on turn start and on action change.
 
@@ -36,7 +37,7 @@ description: >
 |---|---|
 | New action (heal, ability) | Subclass `BattleAction` (incl. `visual_kind()`); add an instance to `BattleContext.actions`; add its color to the pack's `action_colors.tres`. |
 | New unit | One `UnitType.new(...)` line in a catalog; pick its cost, then calibrate (below). |
-| New controller (network, scripted) | Subclass `CharacterController`; override `choose_action/move/target`. |
+| New controller (network, scripted) | Subclass `CharacterController`; override `choose_action/move/target` (a bot) or `take_turn` (a network/scripted turn, see `match3-online`); add a line to `ControllerCodec`. |
 | New battle variant (co-op, boss) | Configure `BattleMode.new(name, ally_humans, enemy_humans, ally_ratio, enemy_ratio)` from a `ModeDefinition` (`core/modes/definitions/`) registered in `ModeCatalog`. Not a subclass. |
 | New level-scaled value | `LevelCurve.percent/linear/stepped`. Never hand-rolled. |
 

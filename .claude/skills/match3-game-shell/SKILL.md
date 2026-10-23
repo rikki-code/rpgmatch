@@ -16,6 +16,7 @@ description: >
   (`SettingPreset`, difficulty bundles that may carry hidden keys like bonus chances; the `preset`
   setting is an index, `presets().size()` = Custom). `ModeSetupForm` builds the form from the schema
   (preset row, plain settings, `SettingSpec.as_advanced()` ones behind an Advanced toggle), so a new mode = one definition file + one `ModeCatalog` line, no UI edits.
+- Online PvP (`OnlineDefinition`, hidden from the list) and its Multiplayer lobby: see `.claude/skills/match3-online/SKILL.md`.
 - New `GameMode` subclass only when the phase list differs; otherwise configure an existing mode
   (PvP = `BattleMode` with N humans per side and budget 0).
 
@@ -46,7 +47,7 @@ description: >
 - New saved state = `to_dict`/`restore` on its owner plus a key in `GameSnapshot.capture`; a new class
   family needs a codec line (`Tile.from_recipe`, `CellKindCodec`, `ControllerCodec`, `EntityCodec`), not a
   generic object serializer. Changing the format = bump `RunSave.VERSION` and migrate in `from_dict`.
-- `BattleContext.is_versus()` (humans on both sides, i.e. PvP) makes the end screen name the winner and
+- `BattleContext.is_versus()` (people on both sides, i.e. PvP, here or online) makes the end screen name the winner and
   offer a Rematch on the same level instead of Next battle.
 
 ## Switching and restart

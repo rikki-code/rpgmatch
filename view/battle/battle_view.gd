@@ -121,6 +121,8 @@ func _on_turn_started(character: Character) -> void:
 		_cards[other].set_active(other == character, other.controller.is_human())
 	if character.controller.is_human():
 		_turn_label.text = "%s's turn: pick an action, click any card as the target, then swap tiles" % character.display_name
+	elif character.controller.is_remote():
+		_turn_label.text = "%s is thinking..." % character.display_name
 	else:
 		_turn_label.text = "%s's turn..." % character.display_name
 	_update_target_marks()
@@ -196,9 +198,17 @@ func _on_battle_ended(victory: bool) -> void:
 	if _battle.is_versus():
 		_result_label.text = "%s wins!" % (_battle.allies if victory else _battle.enemies)[0].display_name
 		_continue_button.text = "Rematch"
+		# A rematch needs both players; the online one leaves through the main menu.
+		_continue_button.visible = not _battle.is_online()
 	else:
 		_result_label.text = "Victory!" if victory else "%s wins!" % _battle.enemies[0].display_name
 		_continue_button.text = "Next battle" if victory else "Retry"
+	_overlay.visible = true
+
+## Ends the battle screen with a message and only the way out (the opponent is gone).
+func show_notice(text: String) -> void:
+	_result_label.text = text
+	_continue_button.visible = false
 	_overlay.visible = true
 
 func _on_card_clicked(character: Character) -> void:

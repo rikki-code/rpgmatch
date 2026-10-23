@@ -7,8 +7,10 @@ signal start_requested(config: RunConfig)
 signal continue_requested(run: RunSave)
 signal quit_requested
 signal sound_pack_selected(id: String)
+signal player_name_changed(player_name: String)
 
 const CONTENT_WIDTH := 760.0
+const LOGO_HEIGHT := 240.0
 
 var _select_page: VBoxContainer
 var _setup_holder: VBoxContainer
@@ -54,13 +56,25 @@ func setup(definitions: Array[ModeDefinition], profile: ProfileData, runs: Dicti
 	_setup_holder = VBoxContainer.new()
 	column.add_child(_setup_holder)
 
-	_select_page.add_child(MenuKit.label("rpgmatch", 72))
+	_select_page.add_child(_logo())
 	for definition in definitions:
 		MenuKit.button(_select_page, definition.title(), _on_play.bind(definition))
+	MenuKit.button(_select_page, "Multiplayer", _show_online)
 	MenuKit.button(_select_page, "Settings", _show_settings)
 	if can_quit:
 		MenuKit.button(_select_page, "Quit", func() -> void: quit_requested.emit())
 	_show_select()
+
+func _logo() -> Control:
+	var texture := load(PackPaths.UI_PACK + "logo.svg") as Texture2D
+	if texture == null:
+		return MenuKit.label("rpgmatch", 72)
+	var rect := TextureRect.new()
+	rect.texture = texture
+	rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	rect.custom_minimum_size.y = LOGO_HEIGHT
+	return rect
 
 func _on_play(definition: ModeDefinition) -> void:
 	if definition.settings_schema(_profile.stats_for(definition.id())).is_empty() and not _runs.has(definition.id()):
@@ -87,6 +101,23 @@ func _show_settings() -> void:
 	padded.add_theme_constant_override("margin_bottom", 28)
 	_footer.add_child(padded)
 	var back := MenuKit.button(padded, "Back", _show_select)
+	back.custom_minimum_size.x = CONTENT_WIDTH
+
+func _show_online() -> void:
+	_select_page.visible = false
+	_setup_holder.visible = true
+	var lobby := OnlineLobby.new()
+	_setup_holder.add_child(lobby)
+	lobby.setup(_profile.player_name)
+	lobby.match_ready.connect(func(config: RunConfig) -> void: start_requested.emit(config))
+	lobby.name_committed.connect(func(player_name: String) -> void: player_name_changed.emit(player_name))
+	var padded := MarginContainer.new()
+	padded.add_theme_constant_override("margin_bottom", 28)
+	_footer.add_child(padded)
+	var back := MenuKit.button(padded, "Back", func() -> void:
+		Net.leave()
+		_show_select()
+	)
 	back.custom_minimum_size.x = CONTENT_WIDTH
 
 func _show_setup(definition: ModeDefinition) -> void:
