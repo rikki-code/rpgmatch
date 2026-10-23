@@ -15,6 +15,7 @@ var stats_recorder: StatsRecorder
 var board_audio: BoardAudio
 var battle_audio: BattleAudio
 var online_sync: OnlineSync
+var _round_tween: Tween
 var current_mode: GameMode
 ## Debug builds only: one default-settings mode per ModeCatalog entry, for the editor toolbar's mode dropdown.
 var dev_modes: Array[GameMode] = []
@@ -156,9 +157,9 @@ func _ready() -> void:
 
 func _start_online() -> void:
 	online_sync = OnlineSync.new()
-	online_sync.setup(ctx, int(GameSession.launch.settings[&"seat"]))
+	online_sync.setup(ctx, int(GameSession.launch.settings[&"seat"]), GameSession.launch.settings[&"departed"])
 	online_sync.outgoing.connect(Net.send_game)
-	online_sync.match_lost.connect(battle_view.show_notice)
+	online_sync.match_lost.connect(_on_match_lost)
 	Net.game_message.connect(online_sync.receive)
 	Net.connection_lost.connect(online_sync.connection_lost)
 	for message in Net.attach_game():
@@ -264,6 +265,33 @@ func _on_battle_ended(victory: bool) -> void:
 	stats_recorder.note_battle_ended(victory)
 	SaveStore.delete_run(GameSession.launch.mode_id)
 	_save_stats()
+	if online_sync != null:
+		_online_round_over()
+
+func _online_round_over() -> void:
+	if not online_sync.can_continue():
+		battle_view.add_result_line("Match over")
+		return
+	battle_view.add_result_line("Next round starting...")
+	_round_tween = create_tween()
+	_round_tween.tween_interval(ROUND_PAUSE_SECONDS)
+	_round_tween.finished.connect(_next_round)
+
+func _on_match_lost(reason: String) -> void:
+	if _round_tween != null:
+		_round_tween.kill()
+	battle_view.show_notice(reason)
+
+## A new board one level up, the same players; what the others already sent for it is kept.
+func _next_round() -> void:
+	var launch := GameSession.launch
+	launch.level += 1
+	launch.settings[&"seed"] = int(launch.settings[&"seed"]) + 1
+	launch.settings[&"wins"] = ctx.battle.team_wins.duplicate()
+	launch.settings[&"departed"] = online_sync.departed_seats().duplicate()
+	Net.detach_game(online_sync.unplayed_messages())
+	GameSession.online_next_round = true
+	_restart()
 
 func _save_stats() -> void:
 	if stats_recorder.dirty:
@@ -275,7 +303,10 @@ func _exit_tree() -> void:
 	if online_sync != null:
 		Net.game_message.disconnect(online_sync.receive)
 		Net.connection_lost.disconnect(online_sync.connection_lost)
-		Net.leave()
+		if GameSession.online_next_round:
+			GameSession.online_next_round = false
+		else:
+			Net.leave()
 
 # Waits for the opening fill to land: input is open from the first turn, and a move made
 # under tiles that are still falling in shows holes.
@@ -300,6 +331,8 @@ func _after_board_move() -> void:
 	board_view.refresh()
 
 const QUEST_REWARD_PER_TILE := 5
+## Online: how long the round result stays up before the next round.
+const ROUND_PAUSE_SECONDS := 4.0
 
 const CAMERA_HEIGHT := 15.0
 const CAMERA_TILT_DEGREES := 5.0

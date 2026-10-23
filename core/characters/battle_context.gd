@@ -34,6 +34,8 @@ var pending_action: BattleAction
 ## click on any card (friendly fire / shielding an enemy are allowed).
 var pending_target: Character
 var ended := false
+## Rounds won by the ally / enemy side (online matches play round after round).
+var team_wins: Array[int] = [0, 0]
 var level := 1
 ## Board-dependent scale for match points only — few colors = self-feeding
 ## cascades (see BattleMode.POWER_MULTIPLIER_BY_COLORS). Blasts aren't cascades.
@@ -138,4 +140,5 @@ func finish() -> void:
 	if ended:
 		return
 	ended = true
+	team_wins[0 if is_victory() else 1] += 1
 	battle_ended.emit(is_victory())

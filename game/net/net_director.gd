@@ -168,6 +168,15 @@ func attach_game() -> Array[Dictionary]:
 	return pending
 
 ## A message of the running game, resent until every other player confirmed it.
+## Between two rounds the game scene is gone for a moment: what comes in waits for the next one.
+func detach_game(unplayed: Array[Dictionary]) -> void:
+	_listening = false
+	var merged: Array[Dictionary] = []
+	merged.append_array(unplayed)
+	merged.append_array(_inbox)
+	_inbox = merged
+
+## A message of the running game, resent until every other player confirmed it.
 func send_game(message: Dictionary) -> void:
 	_tx_seq += 1
 	var numbered := message.duplicate()

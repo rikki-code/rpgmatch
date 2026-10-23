@@ -28,6 +28,10 @@ func setup(player_name: String) -> void:
 	_name_edit.text = player_name
 	_name_edit.focus_exited.connect(_commit_name)
 	_name_edit.text_submitted.connect(func(_text: String) -> void: _commit_name())
+	if _uses_browser_prompt():
+		# A phone's browser opens its keyboard only from its own dialog, not for the canvas.
+		_name_edit.virtual_keyboard_enabled = false
+		_name_edit.gui_input.connect(_on_name_input)
 	add_child(MenuKit.row("Name", _name_edit))
 	_status = MenuKit.label("", 26)
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -56,6 +60,17 @@ func setup(player_name: String) -> void:
 	Net.match_ready.connect(func(config: RunConfig) -> void: match_ready.emit(config))
 	Net.browse()
 	_refresh()
+
+func _uses_browser_prompt() -> bool:
+	return OS.has_feature("web") and DisplayServer.is_touchscreen_available()
+
+func _on_name_input(event: InputEvent) -> void:
+	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT) or Net.in_room():
+		return
+	var answer: Variant = JavaScriptBridge.eval("window.prompt('Your name', %s)" % JSON.stringify(_name_edit.text))
+	if answer is String:
+		_name_edit.text = answer.left(NetDirector.MAX_NAME_LENGTH)
+		_commit_name()
 
 func _section() -> VBoxContainer:
 	var box := VBoxContainer.new()

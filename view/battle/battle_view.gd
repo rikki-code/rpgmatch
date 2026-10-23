@@ -64,7 +64,7 @@ func setup(ctx: TurnContext) -> void:
 	_overlay.visible = false
 	_apply_layout()
 	_turn_label.text = ""
-	_level_label.text = "Level %d" % _battle.level
+	_level_label.text = _level_text()
 
 	_battle.turn_started.connect(_on_turn_started)
 	_battle.action_selected.connect(_on_action_selected)
@@ -205,12 +205,24 @@ func _on_battle_ended(victory: bool) -> void:
 		var winners := _battle.allies if victory else _battle.enemies
 		_result_label.text = "%s wins!" % " & ".join(PackedStringArray(winners.map(func(c: Character) -> String: return c.display_name)))
 		_continue_button.text = "Rematch"
-		# A rematch needs both players; the online one leaves through the main menu.
+		# Online goes on by itself with the next round, or leaves through the main menu.
 		_continue_button.visible = not _battle.is_online()
+		if _battle.is_online():
+			_result_label.text += "\n" + _score_text()
 	else:
 		_result_label.text = "Victory!" if victory else "%s wins!" % _battle.enemies[0].display_name
 		_continue_button.text = "Next battle" if victory else "Retry"
 	_overlay.visible = true
+
+func add_result_line(text: String) -> void:
+	_result_label.text += "\n" + text
+
+func _level_text() -> String:
+	var text := "Level %d" % _battle.level
+	return text + "   " + _score_text() if _battle.is_online() else text
+
+func _score_text() -> String:
+	return "Heroes %d : %d Devils" % [_battle.team_wins[0], _battle.team_wins[1]]
 
 ## Ends the battle screen with a message and only the way out (the opponent is gone).
 func show_notice(text: String) -> void:

@@ -5,6 +5,8 @@ extends RefCounted
 static var launch: RunConfig
 ## GameSnapshot data for GameRoot to restore instead of generating a new game; consumed on read.
 static var resume: Dictionary
+## An online match goes on in the next round: the reload must not leave it.
+static var online_next_round := false
 
 static var _profile: ProfileData
 

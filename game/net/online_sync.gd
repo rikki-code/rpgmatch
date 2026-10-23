@@ -12,12 +12,19 @@ signal outgoing(message: Dictionary)
 
 var _ctx: TurnContext
 var _remotes := {}  # seat -> RemoteController
+var _seat_count := 0
+## Seats whose players left, in the game's own order (see RemoteController's bye).
+var _departed: Array[int] = []
 ## Board rng state when the current turn began: identical on all clients unless they diverged.
 var _turn_rng := ""
 
-func setup(ctx: TurnContext, local_seat: int) -> void:
+func setup(ctx: TurnContext, local_seat: int, departed: Array) -> void:
 	_ctx = ctx
-	for seat in ctx.battle.all_characters().size():
+	_seat_count = ctx.battle.all_characters().size()
+	for seat: int in departed:
+		_departed.append(seat)
+	ctx.battle.character_left.connect(_on_character_left)
+	for seat in _seat_count:
 		if seat != local_seat:
 			var remote: RemoteController = OnlineMode.seat_character(ctx.battle, seat).controller
 			remote.desynced.connect(_on_desynced)
@@ -34,8 +41,33 @@ func receive(message: Dictionary) -> void:
 	if remote != null:
 		remote.push(message)
 
+## Another round can only be played if both teams still have somebody in it.
+func can_continue() -> bool:
+	for team in 2:
+		var alive := false
+		for seat in range(team, _seat_count, 2):
+			alive = alive or not _departed.has(seat)
+		if not alive:
+			return false
+	return true
+
+func departed_seats() -> Array[int]:
+	return _departed
+
+## Everything received for the round that is over, to be played in the next one.
+func unplayed_messages() -> Array[Dictionary]:
+	var rest: Array[Dictionary] = []
+	for remote: RemoteController in _remotes.values():
+		rest.append_array(remote.drain())
+	return rest
+
 func connection_lost(reason: String) -> void:
 	_lose(reason)
+
+func _on_character_left(character: Character) -> void:
+	for seat in _seat_count:
+		if OnlineMode.seat_character(_ctx.battle, seat) == character and not _departed.has(seat):
+			_departed.append(seat)
 
 func _on_turn_started(_character: Character) -> void:
 	_turn_rng = str(_ctx.board.rng.state)
@@ -74,7 +106,5 @@ func _move(kind: String, cell_a: GridCell, cell_b: GridCell) -> Dictionary:
 func _on_desynced() -> void:
 	_lose("The games got out of sync")
 
-## Nothing to report once the battle is decided: the result screen is already up.
 func _lose(reason: String) -> void:
-	if not _ctx.battle.ended:
-		match_lost.emit(reason)
+	match_lost.emit(reason)

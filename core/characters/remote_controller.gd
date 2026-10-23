@@ -25,6 +25,12 @@ func push(message: Dictionary) -> void:
 	_inbox.append(message)
 	_arrived.emit()
 
+## What arrived but was not played: it belongs to the next round.
+func drain() -> Array[Dictionary]:
+	var rest := _inbox.duplicate()
+	_inbox.clear()
+	return rest
+
 func take_turn(ctx: TurnContext) -> void:
 	var battle := ctx.battle
 	var turn_rng := str(ctx.board.rng.state)
