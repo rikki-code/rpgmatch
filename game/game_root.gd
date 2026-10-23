@@ -156,11 +156,11 @@ func _ready() -> void:
 
 func _start_online() -> void:
 	online_sync = OnlineSync.new()
-	online_sync.setup(ctx)
+	online_sync.setup(ctx, int(GameSession.launch.settings[&"seat"]))
 	online_sync.outgoing.connect(Net.send_game)
 	online_sync.match_lost.connect(battle_view.show_notice)
 	Net.game_message.connect(online_sync.receive)
-	Net.opponent_left.connect(online_sync.opponent_left)
+	Net.connection_lost.connect(online_sync.connection_lost)
 	for message in Net.attach_game():
 		online_sync.receive(message)
 	game_menu.set_restart_enabled(false)
@@ -274,7 +274,7 @@ func _exit_tree() -> void:
 	_save_stats()
 	if online_sync != null:
 		Net.game_message.disconnect(online_sync.receive)
-		Net.opponent_left.disconnect(online_sync.opponent_left)
+		Net.connection_lost.disconnect(online_sync.connection_lost)
 		Net.leave()
 
 # Waits for the opening fill to land: input is open from the first turn, and a move made

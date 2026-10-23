@@ -72,6 +72,7 @@ func setup(ctx: TurnContext) -> void:
 	_battle.shield_gained.connect(_on_shield_gained)
 	_battle.action_launched.connect(_on_action_launched)
 	_battle.battle_ended.connect(_on_battle_ended)
+	_battle.character_left.connect(_on_character_left)
 	_battle.resolver.action_resolved.connect(_on_action_resolved)
 	if not ctx.score_tracker.score_awarded.is_connected(_on_score_awarded):
 		ctx.score_tracker.score_awarded.connect(_on_score_awarded)
@@ -150,6 +151,11 @@ func _on_action_resolved(action: CombatAction, damage: int, is_crit: bool) -> vo
 		_update_target_marks()
 	_turn_label.text = "%s hits %s for %d%s" % [action.actor.display_name, action.target.display_name, damage, "  CRIT!" if is_crit else ""]
 
+func _on_character_left(character: Character) -> void:
+	_cards[character].refresh()
+	_update_target_marks()
+	_turn_label.text = "%s left the game" % character.display_name
+
 func _on_action_launched(actor: Character, target: Character, action: BattleAction) -> void:
 	var intensity := _charge_intensity()
 	# A self-cast keeps glowing until its burst; set_active(false) clears it at turn end.
@@ -196,7 +202,8 @@ func _on_battle_ended(victory: bool) -> void:
 		_cards[character].set_active(false, false)
 	_update_target_marks()
 	if _battle.is_versus():
-		_result_label.text = "%s wins!" % (_battle.allies if victory else _battle.enemies)[0].display_name
+		var winners := _battle.allies if victory else _battle.enemies
+		_result_label.text = "%s wins!" % " & ".join(PackedStringArray(winners.map(func(c: Character) -> String: return c.display_name)))
 		_continue_button.text = "Rematch"
 		# A rematch needs both players; the online one leaves through the main menu.
 		_continue_button.visible = not _battle.is_online()

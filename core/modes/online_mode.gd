@@ -1,22 +1,31 @@
-## PvP against a person on another machine: the host plays the Hero, the guest the
-## Devil, and the other side's character is driven by a RemoteController. Everything
-## else is the plain duel (BattleMode), generated from the same seed on both clients.
+## PvP between people on different machines, up to 3 a side: seats alternate between the Hero
+## team (even seats, the host first) and the Devil team (odd), and every seat but the local one
+## is driven by a RemoteController. Everything else is the plain duel (BattleMode), generated
+## from the same seed on every client.
 class_name OnlineMode
 extends BattleMode
 
-var _local_is_host: bool
+var _seat_count: int
+var _local_seat: int
 
-func _init(host_name: String, guest_name: String, p_local_is_host: bool) -> void:
-	var hero := UnitType.hero()
-	hero.display_name = host_name
-	var devil := UnitType.devil()
-	devil.display_name = guest_name
-	super("Online", [hero], [devil], 0.0, 0.0)
-	_local_is_host = p_local_is_host
+func _init(names: Array, p_local_seat: int) -> void:
+	var heroes: Array[UnitType] = []
+	var devils: Array[UnitType] = []
+	for seat in names.size():
+		var type := UnitType.hero() if seat % 2 == 0 else UnitType.devil()
+		type.display_name = names[seat]
+		(heroes if seat % 2 == 0 else devils).append(type)
+	super("Online", heroes, devils, 0.0, 0.0)
+	_seat_count = names.size()
+	_local_seat = p_local_seat
 
 func build_phases(ctx: TurnContext, level: int) -> Array[TurnPhase]:
 	var phases := super(ctx, level)
-	# Humans go first on their side (EncounterGenerator.build_side).
-	var remote := ctx.battle.enemies[0] if _local_is_host else ctx.battle.allies[0]
-	remote.controller = RemoteController.new()
+	for seat in _seat_count:
+		if seat != _local_seat:
+			seat_character(ctx.battle, seat).controller = RemoteController.new()
 	return phases
+
+## Humans go first on their side (EncounterGenerator.build_side), in seat order.
+static func seat_character(battle: BattleContext, seat: int) -> Character:
+	return (battle.allies if seat % 2 == 0 else battle.enemies)[floori(seat / 2.0)]

@@ -19,7 +19,7 @@ func is_remote() -> bool:
 func to_dict() -> Dictionary:
 	return {"type": "remote"}
 
-## `{"t": "shuffle"}` or `{"t": "move", "kind": "swap"|"detonate", "a": [x, y], "b": [x, y],
+## `{"t": "bye"}` (the player left: its character goes at its next turn), `{"t": "shuffle"}` or `{"t": "move", "kind": "swap"|"detonate", "a": [x, y], "b": [x, y],
 ## "action": index, "target": index}`; each carries "rng", the board rng state at the turn's start.
 func push(message: Dictionary) -> void:
 	_inbox.append(message)
@@ -32,6 +32,10 @@ func take_turn(ctx: TurnContext) -> void:
 		while _inbox.is_empty():
 			await _arrived
 		var message: Dictionary = _inbox.pop_front()
+		if message.get("t") == "bye":
+			battle.retire(battle.active_character)
+			ctx.turn_manager.notify_phase_done()
+			return
 		if str(message.get("rng", "")) != turn_rng:
 			desynced.emit()
 			return

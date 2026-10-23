@@ -18,6 +18,8 @@ signal shield_gained(character: Character, amount: int)
 ## cell_b is null for a detonation (see MoveFinder.Move).
 signal ai_move_chosen(cell_a: GridCell, cell_b: GridCell)
 signal battle_ended(victory: bool)
+## A player walked out of an online match: the character is gone from the fight.
+signal character_left(character: Character)
 
 var allies: Array[Character] = []
 var enemies: Array[Character] = []
@@ -126,6 +128,11 @@ func is_battle_over() -> bool:
 
 func is_victory() -> bool:
 	return first_living(enemies) == null
+
+func retire(character: Character) -> void:
+	character.hp = 0
+	character.shield = 0
+	character_left.emit(character)
 
 func finish() -> void:
 	if ended:

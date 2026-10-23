@@ -1,43 +1,46 @@
-## Keeps the two clients of an online match in step. Both run the same deterministic game
-## from the same seed, so only the player's choices travel: when the local human makes a
-## board move it is sent to the opponent, and what the opponent sent is handed to its
-## RemoteController, which replays it as that character's turn. The transport (Net) is
-## plugged in by GameRoot: `outgoing` out, receive() / opponent_left() in.
+## Keeps the clients of an online match in step. All of them run the same deterministic game
+## from the same seed, so only the players' choices travel: when the local human makes a
+## board move it is sent to the others, and what another player sent is handed to the
+## RemoteController of that seat, which replays it as that character's turn. The transport
+## (Net) is plugged in by GameRoot: `outgoing` out, receive() / connection_lost() in.
 class_name OnlineSync
 extends RefCounted
 
-## The match cannot go on: the opponent left, or the two games stopped agreeing.
+## The match cannot go on: our link is down, or the games stopped agreeing.
 signal match_lost(reason: String)
 signal outgoing(message: Dictionary)
 
 var _ctx: TurnContext
-var _remote: RemoteController
-## Board rng state when the current turn began: identical on both clients unless they diverged.
+var _remotes := {}  # seat -> RemoteController
+## Board rng state when the current turn began: identical on all clients unless they diverged.
 var _turn_rng := ""
 
-func setup(ctx: TurnContext) -> void:
+func setup(ctx: TurnContext, local_seat: int) -> void:
 	_ctx = ctx
-	for character in ctx.battle.all_characters():
-		if character.controller.is_remote():
-			_remote = character.controller
+	for seat in ctx.battle.all_characters().size():
+		if seat != local_seat:
+			var remote: RemoteController = OnlineMode.seat_character(ctx.battle, seat).controller
+			remote.desynced.connect(_on_desynced)
+			_remotes[seat] = remote
 	ctx.battle.turn_started.connect(_on_turn_started)
 	ctx.swap_controller.swap_applied.connect(_on_swap)
 	ctx.swap_controller.tiles_combined.connect(_on_swap)
 	ctx.detonate_controller.detonated.connect(_on_detonated)
 	ctx.shuffle_controller.shuffled.connect(_on_shuffled)
-	_remote.desynced.connect(_on_desynced)
 
-## A message of the opponent.
+## A message of another player ("s" = its seat, set by Net); `bye` = it left.
 func receive(message: Dictionary) -> void:
-	_remote.push(message)
+	var remote: RemoteController = _remotes.get(int(message.get("s", -1)))
+	if remote != null:
+		remote.push(message)
 
-func opponent_left(reason: String) -> void:
+func connection_lost(reason: String) -> void:
 	_lose(reason)
 
 func _on_turn_started(_character: Character) -> void:
 	_turn_rng = str(_ctx.board.rng.state)
 
-## Moves the remote character makes go through the same controllers; only the local human's are sent.
+## Moves the remote characters make go through the same controllers; only the local human's are sent.
 func _is_local_turn() -> bool:
 	var actor := _ctx.battle.active_character
 	return actor != null and actor.controller.is_human() and not _ctx.battle.ended
@@ -69,7 +72,7 @@ func _move(kind: String, cell_a: GridCell, cell_b: GridCell) -> Dictionary:
 	return message
 
 func _on_desynced() -> void:
-	_lose("The two games got out of sync")
+	_lose("The games got out of sync")
 
 ## Nothing to report once the battle is decided: the result screen is already up.
 func _lose(reason: String) -> void:
