@@ -1,53 +1,70 @@
 ## Pooled one-shot VFX (same pattern as TileExplosion): play(from, to), then it
-## returns to the pool. Two-segment bolt with a jittered midpoint reads as
-## electric, no shader needed.
+## returns to the pool. A kinked chain of segments (bright core inside a wider
+## additive glow, both from the pack scene) reads as electric, no shader needed.
 class_name MatchLightning
 extends Vfx
 
-const DURATION := 0.22
-const JITTER := 0.14
+const DURATION := 0.3
+## Sideways kink of the inner joints, plus a little lift so the bolt stays above the tiles.
+const JITTER := 0.13
+const LIFT_JITTER := 0.03
 
-@onready var segment_a: MeshInstance3D = $SegmentA
-@onready var segment_b: MeshInstance3D = $SegmentB
 @onready var light: OmniLight3D = $Light
 
-var _mat_a: StandardMaterial3D
-var _mat_b: StandardMaterial3D
-var _alpha: float
+var _cores: Array[MeshInstance3D] = []
+var _glows: Array[MeshInstance3D] = []
+var _core_material: StandardMaterial3D
+var _glow_material: StandardMaterial3D
+var _core_alpha: float
+var _glow_alpha: float
 var _energy: float
 
 func _ready() -> void:
-	# Own material per instance so simultaneous bolts fade independently.
-	_mat_a = segment_a.material_override.duplicate()
-	segment_a.material_override = _mat_a
-	_mat_b = segment_b.material_override.duplicate()
-	segment_b.material_override = _mat_b
-	_alpha = _mat_a.albedo_color.a
+	# Own materials per instance so simultaneous bolts fade independently.
+	for segment: MeshInstance3D in $Core.get_children():
+		_cores.append(segment)
+	for segment: MeshInstance3D in $Glow.get_children():
+		_glows.append(segment)
+	_core_material = _cores[0].material_override.duplicate()
+	_glow_material = _glows[0].material_override.duplicate()
+	for segment in _cores:
+		segment.material_override = _core_material
+	for segment in _glows:
+		segment.material_override = _glow_material
+	_core_alpha = _core_material.albedo_color.a
+	_glow_alpha = _glow_material.albedo_color.a
 	_energy = light.light_energy
 	light.visible = false
 
 func play(from: Vector3, to: Vector3) -> void:
-	var perpendicular := (to - from).cross(Vector3.UP)
+	var along := to - from
+	var perpendicular := along.cross(Vector3.UP)
 	if perpendicular.length() < 0.01:
 		perpendicular = Vector3.RIGHT
 	else:
 		perpendicular = perpendicular.normalized()
-	var mid := (from + to) * 0.5 + perpendicular * randf_range(-JITTER, JITTER)
 
-	_place_segment(segment_a, from, mid)
-	_place_segment(segment_b, mid, to)
-	light.position = mid
+	var count := _cores.size()
+	var joint := from
+	for i in range(count):
+		var next := to
+		if i < count - 1:
+			next = from + along * (float(i + 1) / count) + perpendicular * randf_range(-JITTER, JITTER) + Vector3.UP * randf_range(-LIFT_JITTER, LIFT_JITTER)
+		_place_segment(_cores[i], joint, next)
+		_place_segment(_glows[i], joint, next)
+		joint = next
+	light.position = (from + to) * 0.5
 	light.visible = light_on
-	_mat_a.albedo_color.a = _alpha
-	_mat_b.albedo_color.a = _alpha
+	_core_material.albedo_color.a = _core_alpha
+	_glow_material.albedo_color.a = _glow_alpha
 	light.light_energy = _energy
 	_run(DURATION, _update)
 
 func _update(progress: float) -> void:
-	var alpha := _alpha * (1.0 - progress)
-	_mat_a.albedo_color.a = alpha
-	_mat_b.albedo_color.a = alpha
-	light.light_energy = _energy * (1.0 - progress)
+	var fade := 1.0 - progress
+	_core_material.albedo_color.a = _core_alpha * fade
+	_glow_material.albedo_color.a = _glow_alpha * fade
+	light.light_energy = _energy * fade
 
 func _reset() -> void:
 	light.visible = false

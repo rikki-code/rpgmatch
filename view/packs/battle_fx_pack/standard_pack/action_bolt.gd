@@ -7,13 +7,16 @@ extends Node2D
 signal landed
 
 const ARC_HEIGHT := 90.0
-const TRAIL_POINTS := 16
+## How long the trail streams behind the orb (seconds, so it looks the same at any frame rate).
+const TRAIL_SECONDS := 0.65
 
 @onready var _orb: ColorRect = $Orb
 @onready var _arcs: Node2D = $Arcs
 @onready var _sparks: CPUParticles2D = $Sparks
 @onready var _trail: Line2D = $Trail
 var _flying := false
+var _age := 0.0
+var _point_ages: Array[float] = []
 
 func launch(start: Vector2, end: Vector2, color: Color, seconds: float, power: float) -> void:
 	var size := lerpf(0.6, 1.5, power)
@@ -28,6 +31,7 @@ func launch(start: Vector2, end: Vector2, color: Color, seconds: float, power: f
 	_sparks.color = color.lightened(0.3)
 	position = start
 	_trail.clear_points()
+	_point_ages.clear()
 	_flying = true
 	_sparks.emitting = true
 	var bend := (end - start).orthogonal().normalized() * ARC_HEIGHT
@@ -36,12 +40,15 @@ func launch(start: Vector2, end: Vector2, color: Color, seconds: float, power: f
 	tween.tween_method(func(t: float) -> void: position = _bezier(start, control, end, t), 0.0, 1.0, seconds).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 	tween.tween_callback(_land)
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if not _flying:
 		return
+	_age += delta
 	_trail.add_point(global_position)
-	if _trail.get_point_count() > TRAIL_POINTS:
+	_point_ages.append(_age)
+	while _age - _point_ages[0] > TRAIL_SECONDS:
 		_trail.remove_point(0)
+		_point_ages.remove_at(0)
 
 func _land() -> void:
 	_flying = false

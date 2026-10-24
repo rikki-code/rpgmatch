@@ -36,7 +36,7 @@ script = ExtResource("1")
 [node name="Trail" type="Line2D" parent="."]
 top_level = true
 material = SubResource("trail")
-width = 24.0
+width = 44.0
 texture = SubResource("white_texture")
 texture_mode = 2
 joint_mode = 2
